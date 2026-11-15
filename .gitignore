@@ -1,0 +1,6 @@
+target/
+settings.json
+hdrsnap.log
+Screenshots/
+dist/
+vendor/

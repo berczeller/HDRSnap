@@ -1,0 +1,3 @@
+This file tells HDRSnap it was installed (not portable): settings and logs
+go to %APPDATA%\HDRSnap, screenshots to Pictures\HDRSnap and recordings to
+Videos\HDRSnap. Delete it to make this copy portable again.
