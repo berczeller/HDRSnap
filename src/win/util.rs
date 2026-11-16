@@ -163,6 +163,57 @@ pub fn copy_image_to_clipboard(hwnd: HWND, img: &RgbImage) -> windows::core::Res
 const RUN_KEY: &str = "Software\\Microsoft\\Windows\\CurrentVersion\\Run";
 const RUN_VALUE: &str = "HDRSnap";
 
+/// Task Manager > Startup apps / Settings > Apps > Startup keep their own
+/// on/off switch per Run entry: first byte 2 = enabled, 3 = disabled.
+const STARTUP_APPROVED_KEY: &str = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run";
+
+/// Raw registry value under HKCU (None if missing).
+pub fn reg_read(subkey: &str, value: &str) -> Option<Vec<u8>> {
+    unsafe {
+        let (sk, v) = (HSTRING::from(subkey), HSTRING::from(value));
+        let mut size = 0u32;
+        if RegGetValueW(HKEY_CURRENT_USER, &sk, &v, RRF_RT_ANY, None, None, Some(&mut size)).is_err() {
+            return None;
+        }
+        let mut buf = vec![0u8; size as usize];
+        if RegGetValueW(HKEY_CURRENT_USER, &sk, &v, RRF_RT_ANY, None, Some(buf.as_mut_ptr() as *mut _), Some(&mut size)).is_err() {
+            return None;
+        }
+        buf.truncate(size as usize);
+        Some(buf)
+    }
+}
+
+/// HDRSnap is in the Run key but switched off in Windows' Startup apps list.
+pub fn autostart_disabled_by_windows() -> bool {
+    reg_read(STARTUP_APPROVED_KEY, RUN_VALUE).and_then(|b| b.first().copied()).map(|b| b & 1 == 1).unwrap_or(false)
+}
+
+/// Windows 11 "Use the Print screen key to open screen capture" (the
+/// Snipping Tool then takes the plain Print Screen key).
+pub fn print_screen_opens_snipping_tool() -> bool {
+    reg_read("Control Panel\\Keyboard", "PrintScreenKeyForSnippingEnabled")
+        .map(|b| b.first().copied().unwrap_or(0) != 0)
+        .unwrap_or(false)
+}
+
+/// Turn "Start with Windows" on or off. `user_choice` = the user just
+/// switched it on in HDRSnap, which also clears a "disabled" mark Windows'
+/// Startup apps list may hold (otherwise the Run entry would be ignored).
+/// At normal app start that mark is respected instead.
+pub fn set_autostart_with(enable: bool, exe: &Path, user_choice: bool) -> Result<(), String> {
+    if enable && user_choice {
+        unsafe {
+            let mut key = HKEY::default();
+            if RegOpenKeyExW(HKEY_CURRENT_USER, &HSTRING::from(STARTUP_APPROVED_KEY), None, KEY_SET_VALUE, &mut key).is_ok() {
+                let _ = RegDeleteValueW(key, &HSTRING::from(RUN_VALUE));
+                let _ = RegCloseKey(key);
+            }
+        }
+    }
+    set_autostart(enable, exe)
+}
+
 pub fn set_autostart(enable: bool, exe: &Path) -> Result<(), String> {
     unsafe {
         let mut key = HKEY::default();

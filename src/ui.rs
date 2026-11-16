@@ -6,7 +6,7 @@
 //! told to reload, so nothing needs a restart.
 
 use crate::win::app::{MAIN_CLASS, MSG_RELOAD, MSG_SUSPEND_HOTKEYS, VERSION};
-use crate::win::{audio, display, record};
+use crate::win::{audio, display, record, util};
 use eframe::egui::{self, Color32, RichText};
 use hdrsnap_core::encoders::{self, Container};
 use hdrsnap_core::hotkey;
@@ -191,6 +191,58 @@ impl HkField {
     }
 }
 
+/// Ready-made hotkey sets. Order of `keys`: region, full screen,
+/// record region, record full screen (same as `HkField::ALL`).
+struct HkPreset {
+    name: &'static str,
+    keys: [&'static str; 4],
+}
+
+const HK_PRESETS: &[HkPreset] = &[
+    HkPreset { name: "HDRSnap (F12)", keys: ["Ctrl+Alt+F12", "Ctrl+F12", "Ctrl+Alt+Shift+F12", "Ctrl+Shift+F12"] },
+    HkPreset {
+        name: "ShareX style (Print Screen = full screen)",
+        keys: ["Ctrl+PrintScreen", "PrintScreen", "Shift+PrintScreen", "Ctrl+Shift+PrintScreen"],
+    },
+    HkPreset {
+        name: "Snipping Tool style (Print Screen = region)",
+        keys: ["PrintScreen", "Ctrl+PrintScreen", "Shift+PrintScreen", "Ctrl+Shift+PrintScreen"],
+    },
+];
+
+impl HkField {
+    fn index(self) -> usize {
+        HkField::ALL.iter().position(|f| *f == self).unwrap_or(0)
+    }
+
+    /// Common alternatives offered in the dropdown (every preset's key for
+    /// this action, plus a few extras).
+    fn choices(self) -> Vec<&'static str> {
+        let mut v: Vec<&'static str> = HK_PRESETS.iter().map(|p| p.keys[self.index()]).collect();
+        v.extend_from_slice(match self {
+            HkField::Region => &["Alt+Shift+F12"][..],
+            HkField::Full => &["Alt+F12"][..],
+            HkField::RecRegion => &["Ctrl+Alt+Shift+R"][..],
+            HkField::RecFull => &["Ctrl+Alt+Shift+F"][..],
+        });
+        let mut seen = Vec::new();
+        v.retain(|k| {
+            let new = !seen.contains(k);
+            seen.push(*k);
+            new
+        });
+        v
+    }
+}
+
+/// Same key combination (ignores spelling differences like "PrtSc").
+fn same_hotkey(a: &str, b: &str) -> bool {
+    match (hotkey::parse(a), hotkey::parse(b)) {
+        (Some(x), Some(y)) => x == y,
+        _ => a.trim().is_empty() && b.trim().is_empty(),
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Probe {
     Checking,
@@ -221,6 +273,10 @@ struct UiApp {
     monitors: Vec<MonitorRow>,
     /// Microphones as (endpoint ID, name).
     mics: Vec<(String, String)>,
+    /// Full hotkey editor open for this field (wizard / hotkeys page).
+    hk_custom: [bool; 4],
+    /// Windows gives Print Screen to the Snipping Tool.
+    prtsc_snipping: bool,
     last_change: Option<Instant>,
     finished: bool,
 }
@@ -268,14 +324,10 @@ impl UiApp {
                     .collect()
             })
             .unwrap_or_default();
+        // The wizard starts from the current hotkeys; presets are one click away.
         let mut s = s;
-        if wizard && !s.setup_completed {
-            // The wizard starts from the recommended hotkeys.
-            let d = Settings::default();
-            s.hotkey_fullscreen = d.hotkey_fullscreen;
-            s.hotkey_region = d.hotkey_region;
-            s.hotkey_record_fullscreen = d.hotkey_record_fullscreen;
-            s.hotkey_record_region = d.hotkey_record_region;
+        if s.start_with_windows && util::autostart_disabled_by_windows() {
+            s.start_with_windows = false; // switched off in Windows' Startup apps
         }
         // `--page=<name>` / `--step=<n>` open a specific page (handy for docs).
         let arg = |k: &str| std::env::args().find_map(|a| a.strip_prefix(k).map(String::from));
@@ -302,6 +354,8 @@ impl UiApp {
             monitors,
             // own thread: COM there is MTA, whatever the UI thread uses
             mics: std::thread::spawn(audio::list_microphones).join().unwrap_or_default(),
+            hk_custom: [false; 4],
+            prtsc_snipping: util::print_screen_opens_snipping_tool(),
             last_change: None,
             finished: false,
         }
@@ -506,6 +560,102 @@ const KEY_CHOICES: &[&str] = &[
 ];
 
 impl UiApp {
+    /// "Preset" dropdown that sets all four shortcuts at once.
+    fn hotkey_preset_row(&mut self, ui: &mut egui::Ui) {
+        let current: Vec<String> = HkField::ALL.iter().map(|f| f.get(&mut self.s).clone()).collect();
+        let matched = HK_PRESETS.iter().position(|p| (0..4).all(|i| same_hotkey(p.keys[i], &current[i])));
+        let mut pick = None;
+        row(ui, "Preset", "Sets all four shortcuts at once. You can still change each one below.", |ui| {
+            let sel = matched.map(|i| HK_PRESETS[i].name).unwrap_or("Your own combination");
+            egui::ComboBox::from_id_salt("hkpreset").width(320.0).selected_text(sel).show_ui(ui, |ui| {
+                for (i, p) in HK_PRESETS.iter().enumerate() {
+                    if ui.selectable_label(matched == Some(i), p.name).clicked() {
+                        pick = Some(i);
+                    }
+                }
+            });
+        });
+        if let Some(i) = pick {
+            for (f, k) in HkField::ALL.iter().zip(HK_PRESETS[i].keys) {
+                *f.get(&mut self.s) = k.to_string();
+            }
+            self.hk_custom = [false; 4];
+            self.set_listening(None);
+        }
+    }
+
+    /// One shortcut: dropdown of common combinations, "Custom…" opens the
+    /// full editor (modifier toggles, any key, press-to-record).
+    fn hotkey_choice_row(&mut self, ui: &mut egui::Ui, field: HkField) {
+        let i = field.index();
+        let cur = field.get(&mut self.s).clone();
+        let choices = field.choices();
+        let label = |k: &str| hotkey::parse(k).map(hotkey::format).unwrap_or_else(|| k.to_string());
+        let mut new_value: Option<String> = None;
+        let mut open_custom = false;
+        ui.horizontal(|ui| {
+            fixed_label(ui, field.label());
+            let sel = if cur.trim().is_empty() { "Disabled".to_string() } else { label(&cur) };
+            egui::ComboBox::from_id_salt(("hkchoice", i)).width(220.0).selected_text(sel).show_ui(ui, |ui| {
+                if !cur.trim().is_empty() && !choices.iter().any(|c| same_hotkey(c, &cur)) {
+                    let _ = ui.selectable_label(true, format!("{}  (current)", label(&cur)));
+                }
+                for c in &choices {
+                    let selected = same_hotkey(c, &cur);
+                    let text = if selected { format!("{}  (current)", label(c)) } else { label(c) };
+                    if ui.selectable_label(selected, text).clicked() {
+                        new_value = Some(c.to_string());
+                    }
+                }
+                if ui.selectable_label(cur.trim().is_empty(), "Disabled").clicked() {
+                    new_value = Some(String::new());
+                }
+                ui.separator();
+                if ui.selectable_label(false, "Custom…").clicked() {
+                    open_custom = true;
+                }
+            });
+            if !self.hk_custom[i] && ui.small_button("Custom…").clicked() {
+                open_custom = true;
+            }
+        });
+        if let Some(v) = new_value {
+            *field.get(&mut self.s) = v;
+        }
+        if open_custom {
+            self.hk_custom[i] = true;
+        }
+        if self.hk_custom[i] {
+            ui.horizontal(|ui| {
+                ui.add_space(LABEL_W + ui.spacing().item_spacing.x);
+                self.hotkey_editor(ui, field);
+            });
+        } else if !cur.trim().is_empty() && HkField::ALL.iter().any(|f| *f != field && same_hotkey(f.get(&mut self.s), &cur)) {
+            ui.horizontal(|ui| {
+                ui.add_space(LABEL_W + ui.spacing().item_spacing.x);
+                ui.label(RichText::new("Same as another HDRSnap hotkey").small().color(Color32::from_rgb(230, 90, 80)));
+            });
+        }
+    }
+
+    /// Windows 11 can give the plain Print Screen key to the Snipping Tool.
+    fn print_screen_warning(&mut self, ui: &mut egui::Ui) {
+        let uses_prtsc = HkField::ALL.iter().any(|f| hotkey::parse(f.get(&mut self.s)).map(|h| h.vk == 0x2C).unwrap_or(false));
+        if uses_prtsc && self.prtsc_snipping {
+            ui.add_space(4.0);
+            ui.label(
+                RichText::new("Windows is set to open the Snipping Tool with Print Screen, so it may take the key before HDRSnap does. Turn off \"Use the Print screen key to open screen capture\" in Windows' keyboard settings.")
+                    .small()
+                    .color(Color32::from_rgb(230, 150, 60)),
+            );
+            if ui.button("Open Windows keyboard settings").clicked() {
+                unsafe {
+                    ShellExecuteW(None, w!("open"), w!("ms-settings:easeofaccess-keyboard"), PCWSTR::null(), PCWSTR::null(), SW_SHOWNORMAL);
+                }
+            }
+        }
+    }
+
     /// Modifier toggles + key dropdown + "press keys" capture.
     fn hotkey_editor(&mut self, ui: &mut egui::Ui, field: HkField) {
         let text = field.get(&mut self.s).clone();
@@ -769,7 +919,7 @@ impl UiApp {
         row(ui, "Show notifications", "", |ui| {
             toggle(ui, &mut self.s.show_notification);
         });
-        row(ui, "Start with Windows", "Adds HDRSnap to your sign-in startup apps (from wherever the exe is now).", |ui| {
+        row(ui, "Start with Windows", "Starts HDRSnap in the tray when you sign in. Also in the tray menu. If you switch it off in Task Manager > Startup apps, this follows.", |ui| {
             toggle(ui, &mut self.s.start_with_windows);
         });
         section(ui, "Setup");
@@ -784,8 +934,9 @@ impl UiApp {
 
     fn page_hotkeys(&mut self, ui: &mut egui::Ui) {
         section(ui, "Hotkeys");
-        ui.label(RichText::new("Click Record and press a key combination, or pick modifiers and a key. Recording hotkeys start and stop.").weak());
+        ui.label(RichText::new("Pick a preset, or click Record and press a key combination. Recording hotkeys start and stop.").weak());
         ui.add_space(6.0);
+        self.hotkey_preset_row(ui);
         for f in HkField::ALL {
             ui.horizontal(|ui| {
                 fixed_label(ui, f.label());
@@ -793,6 +944,7 @@ impl UiApp {
             });
             ui.add_space(8.0);
         }
+        self.print_screen_warning(ui);
         ui.add_space(4.0);
         if ui.button("Restore default hotkeys").clicked() {
             let d = Settings::default();
@@ -964,7 +1116,7 @@ impl UiApp {
 
     fn wizard_ui(&mut self, ctx: &egui::Context) {
         let step = self.wizard.unwrap_or(0);
-        const STEPS: [&str; 4] = ["Hotkeys", "Output folders", "Screenshots", "Recording"];
+        const STEPS: [&str; 4] = ["Hotkeys", "Folders & startup", "Screenshots", "Recording"];
 
         egui::TopBottomPanel::top("wiz_top").frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(egui::Margin::symmetric(22, 6))).show(ctx, |ui| {
             ui.add_space(12.0);
@@ -992,8 +1144,8 @@ impl UiApp {
         egui::TopBottomPanel::bottom("wiz_bottom").frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(egui::Margin::symmetric(22, 4))).show(ctx, |ui| {
             ui.add_space(10.0);
             ui.horizontal(|ui| {
-                if !self.wizard_from_settings && ui.button("Skip setup (use defaults)").clicked() {
-                    let mut d = Settings::default();
+                if !self.wizard_from_settings && ui.button("Skip setup (keep current settings)").clicked() {
+                    let mut d = self.saved.clone();
                     d.setup_completed = true;
                     self.s = d;
                     self.save_now();
@@ -1036,22 +1188,31 @@ impl UiApp {
                 match step {
                     0 => {
                         ui.label(RichText::new("Keyboard shortcuts").size(17.0).strong());
-                        ui.label(RichText::new("Keep the defaults or set your own. Recording hotkeys start and stop recording.").weak());
+                        ui.label(RichText::new("Your current shortcuts are kept. Pick a preset or another common combination if you prefer. Recording hotkeys start and stop recording.").weak());
                         ui.add_space(10.0);
+                        self.hotkey_preset_row(ui);
+                        ui.add_space(4.0);
                         for f in HkField::ALL {
-                            ui.horizontal(|ui| {
-                                fixed_label(ui, f.label());
-                                self.hotkey_editor(ui, f);
-                            });
-                            ui.add_space(8.0);
+                            self.hotkey_choice_row(ui, f);
+                            ui.add_space(6.0);
                         }
+                        self.print_screen_warning(ui);
                     }
                     1 => {
                         ui.label(RichText::new("Where should files go?").size(17.0).strong());
-                        ui.label(RichText::new("By default both folders live next to HDRSnap.exe, so the app stays portable.").weak());
+                        let where_text = if util::is_installed() {
+                            "By default screenshots go to Pictures\\HDRSnap and recordings to Videos\\HDRSnap."
+                        } else {
+                            "By default both folders live next to HDRSnap.exe, so the app stays portable."
+                        };
+                        ui.label(RichText::new(where_text).weak());
                         ui.add_space(10.0);
                         self.folder_row(ui, "Screenshots", false);
                         self.folder_row(ui, "Recordings", true);
+                        ui.add_space(10.0);
+                        row(ui, "Start with Windows", "Start HDRSnap in the tray when you sign in.", |ui| {
+                            toggle(ui, &mut self.s.start_with_windows);
+                        });
                     }
                     2 => {
                         ui.label(RichText::new("Screenshot format").size(17.0).strong());

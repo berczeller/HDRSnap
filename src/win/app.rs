@@ -53,6 +53,7 @@ const CMD_OPEN_SHOTS: usize = 6;
 const CMD_OPEN_VIDEOS: usize = 7;
 const CMD_SETTINGS: usize = 8;
 const CMD_EXIT: usize = 9;
+const CMD_AUTOSTART: usize = 10;
 
 /// Messages other HDRSnap processes (settings window, a second launch) send.
 pub const MSG_RELOAD: PCWSTR = w!("HDRSnap.Reload");
@@ -172,9 +173,14 @@ pub fn run() {
     }
 
     log!("---- HDRSnap {VERSION} starting from {}", exe_dir.display());
-    let (settings, err) = Settings::load(&exe_dir);
+    let (mut settings, err) = Settings::load(&exe_dir);
     if let Some(e) = &err {
         log!("{e}");
+    }
+    if settings.start_with_windows && util::autostart_disabled_by_windows() {
+        // Switched off in Task Manager / Settings > Apps > Startup: show that.
+        log!("start with Windows was disabled in Windows' Startup apps");
+        settings.start_with_windows = false;
     }
     if err.is_none() {
         if let Err(e) = settings.save(&exe_dir) {
@@ -208,7 +214,7 @@ pub fn run() {
         })
     });
 
-    apply_autostart();
+    apply_autostart(false);
     ensure_tray_icon(hwnd);
     register_hotkeys(true);
     if let Some(e) = err {
@@ -456,6 +462,8 @@ fn show_menu(hwnd: HWND) {
         add(CMD_OPEN_SHOTS, "Open screenshots folder", true);
         add(CMD_OPEN_VIDEOS, "Open recordings folder", true);
         sep();
+        let auto_flags = if s.start_with_windows { MF_STRING | MF_CHECKED } else { MF_STRING };
+        let _ = AppendMenuW(menu, auto_flags, CMD_AUTOSTART, w!("Start with Windows"));
         add(CMD_SETTINGS, "Settings...", true);
         add(CMD_EXIT, "Exit", true);
         let _ = SetMenuDefaultItem(menu, CMD_SETTINGS as u32, 0);
@@ -475,6 +483,7 @@ fn show_menu(hwnd: HWND) {
             CMD_OPEN_SHOTS => open_dir(with_app(|a| a.settings.output_dir(&a.exe_dir))),
             CMD_OPEN_VIDEOS => open_dir(with_app(|a| a.settings.video_output_dir(&a.exe_dir))),
             CMD_SETTINGS => launch_ui("--settings"),
+            CMD_AUTOSTART => toggle_autostart(),
             CMD_EXIT => {
                 let _ = DestroyWindow(hwnd);
             }
@@ -491,13 +500,14 @@ fn launch_ui(arg: &str) {
 }
 
 fn reload_settings() {
-    let err = with_app(|a| {
+    let (err, switched_on) = with_app(|a| {
         let (s, err) = Settings::load(&a.exe_dir);
+        let switched_on = s.start_with_windows && !a.settings.start_with_windows;
         a.settings = s;
-        err
+        (err, switched_on)
     });
     log!("settings reloaded");
-    apply_autostart();
+    apply_autostart(switched_on);
     register_hotkeys(true);
     if let Some(e) = err {
         balloon("Settings problem", &e);
@@ -548,9 +558,23 @@ fn register_hotkeys(notify_failures: bool) {
     }
 }
 
-fn apply_autostart() {
+/// Tray menu "Start with Windows".
+fn toggle_autostart() {
+    let (on, saved) = with_app(|a| {
+        a.settings.start_with_windows = !a.settings.start_with_windows;
+        (a.settings.start_with_windows, a.settings.save(&a.exe_dir))
+    });
+    if let Err(e) = saved {
+        log!("could not write settings.json: {e}");
+    }
+    log!("start with Windows: {on}");
+    apply_autostart(on);
+}
+
+/// `user_choice`: the user just switched it on (see util::set_autostart_with).
+fn apply_autostart(user_choice: bool) {
     let (on, exe) = with_app(|a| (a.settings.start_with_windows, a.exe.clone()));
-    if let Err(e) = util::set_autostart(on, &exe) {
+    if let Err(e) = util::set_autostart_with(on, &exe, user_choice) {
         log!("autostart: {e}");
     }
 }

@@ -1,4 +1,4 @@
-# HDRSnap 0.3.0
+# HDRSnap 0.3.1
 
 Lightweight screenshot and screen recording tool for Windows 10/11 that handles **HDR** correctly: captures from HDR monitors look the same as what you see, not washed out or blown out.
 
@@ -25,6 +25,18 @@ Keep `ffmpeg.exe` next to `HDRSnap.exe`; recording needs it. Screenshots work wi
 | Capture full screen | Ctrl+F12 |
 | Start / stop recording a region | Ctrl+Alt+Shift+F12 |
 | Start / stop recording full screen | Ctrl+Shift+F12 |
+
+Presets in the setup wizard and *Settings > Hotkeys* switch all four at once:
+
+| Preset | Region | Full screen | Record region | Record full screen |
+|---|---|---|---|---|
+| HDRSnap (F12) | Ctrl+Alt+F12 | Ctrl+F12 | Ctrl+Alt+Shift+F12 | Ctrl+Shift+F12 |
+| ShareX style | Ctrl+Print Screen | Print Screen | Shift+Print Screen | Ctrl+Shift+Print Screen |
+| Snipping Tool style | Print Screen | Ctrl+Print Screen | Shift+Print Screen | Ctrl+Shift+Print Screen |
+
+For the Print Screen presets, turn off *Use the Print screen key to open screen capture* in Windows' keyboard settings (HDRSnap warns and links there when it's on).
+
+**Start with Windows:** *Settings > General*, the setup wizard or the tray menu. If you switch HDRSnap off in Task Manager > Startup apps, the toggle follows.
 
 While recording, the tray icon turns red. Click it (or press the same hotkey again) to stop.
 
@@ -108,6 +120,14 @@ HDRSnap is MIT licensed. Rust dependencies (`windows`, `eframe`/`egui`, `png`, `
 `ffmpeg.exe` is a separate program: FFmpeg 7.1.1 "essentials" build by gyan.dev, licensed under the **GPL v3**. Its source code is available at https://ffmpeg.org and build details at https://www.gyan.dev/ffmpeg/builds/. HDRSnap only runs it as an external process. See `FFMPEG-LICENSE.txt`.
 
 ## Changes
+
+### 0.3.1
+
+- **Start with Windows** is now also in the tray menu (with a check mark) and in the setup wizard. Turning it on in HDRSnap also re-enables it if it was switched off in Task Manager > Startup apps; switching it off there is reflected in HDRSnap's toggle.
+- **Setup wizard keeps your current hotkeys** instead of resetting them, and offers presets (HDRSnap F12, ShareX style, Snipping Tool style) plus a dropdown of common combinations per shortcut, with *Custom…* for anything else. *Settings > Hotkeys* has the same presets.
+- Warning (with a link to Windows settings) when a Print Screen hotkey is used while Windows gives that key to the Snipping Tool.
+- *Skip setup* keeps your current settings instead of resetting everything to defaults.
+- Fix: a `settings.json` saved with a UTF-8 BOM (Notepad, PowerShell) was treated as invalid and replaced by defaults.
 
 ### 0.3.0
 

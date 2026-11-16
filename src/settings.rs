@@ -155,6 +155,8 @@ impl Settings {
     }
 
     pub fn from_json(text: &str) -> Result<Self, String> {
+        // Notepad / PowerShell may save hand edits with a UTF-8 BOM.
+        let text = text.strip_prefix('\u{feff}').unwrap_or(text);
         let mut v: serde_json::Value = serde_json::from_str(text).map_err(|e| e.to_string())?;
         let version = v.get("settings_version").and_then(|x| x.as_u64()).unwrap_or(1);
         if version < 2 {
@@ -279,6 +281,12 @@ mod tests {
         assert_eq!(s.jpg_quality, 100);
         assert_eq!(s.hotkey_fullscreen, "Ctrl+F12");
         assert!(!s.setup_completed);
+    }
+
+    #[test]
+    fn accepts_utf8_bom() {
+        let s = Settings::from_json("\u{feff}{\"settings_version\":2,\"start_with_windows\":true}").unwrap();
+        assert!(s.start_with_windows);
     }
 
     #[test]
