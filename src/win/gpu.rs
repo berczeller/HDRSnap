@@ -253,6 +253,7 @@ pub struct Converter {
 
 impl Converter {
     /// `src_desc`: format/size of the duplicated desktop texture.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         dev: &ID3D11Device,
         ctx: &ID3D11DeviceContext,

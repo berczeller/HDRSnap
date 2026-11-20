@@ -310,8 +310,7 @@ mod tests {
 
     #[test]
     fn png_quality_mapping() {
-        let mut s = Settings::default();
-        s.png_quality = 0;
+        let mut s = Settings { png_quality: 0, ..Settings::default() };
         assert_eq!(s.png_level(), 0);
         s.png_quality = 70;
         assert_eq!(s.png_level(), 6);

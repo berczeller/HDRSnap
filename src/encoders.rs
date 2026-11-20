@@ -12,7 +12,7 @@ pub enum Container {
 }
 
 impl Container {
-    pub fn from_str(s: &str) -> Self {
+    pub fn from_setting(s: &str) -> Self {
         match s {
             "webm" => Container::Webm,
             "gif" => Container::Gif,
@@ -223,7 +223,7 @@ pub enum AudioTracks {
 }
 
 impl AudioTracks {
-    pub fn from_str(s: &str) -> Self {
+    pub fn from_setting(s: &str) -> Self {
         if s == "separate" {
             AudioTracks::Separate
         } else {
@@ -337,19 +337,19 @@ fn audio_args(audio: &[AudioInput], tracks: AudioTracks, container: Container) -
         return Vec::new();
     }
     let mut a: Vec<String> = vec!["-map".into(), "0:v".into()];
-    let titles: Vec<String>;
-    if tracks == AudioTracks::Mixed && audio.len() > 1 {
+
+    let titles: Vec<String> = if tracks == AudioTracks::Mixed && audio.len() > 1 {
         let ins: String = (1..=audio.len()).map(|i| format!("[{i}:a]")).collect();
         a.push("-filter_complex".into());
         a.push(format!("{ins}amix=inputs={}:duration=longest:normalize=0,alimiter=limit=0.98:level=false[aout]", audio.len()));
         a.extend(["-map".into(), "[aout]".into()]);
-        titles = vec![audio.iter().map(|i| i.title.as_str()).collect::<Vec<_>>().join(" + ")];
+        vec![audio.iter().map(|i| i.title.as_str()).collect::<Vec<_>>().join(" + ")]
     } else {
         for i in 1..=audio.len() {
             a.extend(["-map".into(), format!("{i}:a")]);
         }
-        titles = audio.iter().map(|i| i.title.clone()).collect();
-    }
+        audio.iter().map(|i| i.title.clone()).collect()
+    };
     a.extend(["-c:a".into(), codec.into(), "-b:a".into(), bitrate.into(), "-ar".into(), "48000".into()]);
     for (i, t) in titles.iter().enumerate() {
         a.push(format!("-metadata:s:a:{i}"));
@@ -456,7 +456,7 @@ mod tests {
         assert!(g.contains("palettegen=max_colors=211"));
     }
 
-    fn audio_job<'a>(audio: &'a [AudioInput], tracks: AudioTracks, container: Container) -> Vec<String> {
+    fn audio_job(audio: &[AudioInput], tracks: AudioTracks, container: Container) -> Vec<String> {
         live_args(&EncodeJob {
             ffmpeg_input_pix_fmt: "nv12",
             width: 1920,

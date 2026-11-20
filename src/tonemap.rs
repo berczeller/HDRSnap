@@ -310,7 +310,7 @@ pub fn tonemap_scrgb(
                         let mut c = 0u64;
                         for y in y0..y1 {
                             let row = &src[y * src_pitch..y * src_pitch + width * 4];
-                            for px in row.chunks_exact(4) {
+                            for px in row.as_chunks::<4>().0 {
                                 let m = f16[px[0] as usize].max(f16[px[1] as usize]).max(f16[px[2] as usize]) * inv_scale;
                                 if m > HDR_THRESHOLD && m.is_finite() {
                                     c += 1;
@@ -377,7 +377,7 @@ pub fn tonemap_scrgb(
                 for y in y0..y1 {
                     let row = &src[y * src_pitch..y * src_pitch + width * 4];
                     let out = &mut dst_band[(y - y0) * dst_pitch..(y - y0) * dst_pitch + width * 3];
-                    for (px, o) in row.chunks_exact(4).zip(out.chunks_exact_mut(3)) {
+                    for (px, o) in row.as_chunks::<4>().0.iter().zip(out.as_chunks_mut::<3>().0.iter_mut()) {
                         let [r, g, b] = map_linear(
                             f16[px[0] as usize] * inv_scale,
                             f16[px[1] as usize] * inv_scale,
@@ -402,7 +402,7 @@ pub fn bgra_to_rgb(src: &[u8], src_pitch: usize, width: usize, height: usize, ds
     for y in 0..height {
         let row = &src[y * src_pitch..y * src_pitch + width * 4];
         let out = &mut dst[y * dst_pitch..y * dst_pitch + width * 3];
-        for (px, o) in row.chunks_exact(4).zip(out.chunks_exact_mut(3)) {
+        for (px, o) in row.as_chunks::<4>().0.iter().zip(out.as_chunks_mut::<3>().0.iter_mut()) {
             o[0] = px[2];
             o[1] = px[1];
             o[2] = px[0];
@@ -527,7 +527,7 @@ mod bench {
     fn bench_5k() {
         let (w, h) = (5120usize, 1440usize);
         let mut src = vec![0u16; w * h * 4];
-        for (i, px) in src.chunks_exact_mut(4).enumerate() {
+        for (i, px) in src.as_chunks_mut::<4>().0.iter_mut().enumerate() {
             let v = (i % 5000) as f32 / 1000.0; // 0..5x, lots of HDR pixels
             px[0] = f32_to_f16(v * 3.0);
             px[1] = f32_to_f16(v * 2.0);

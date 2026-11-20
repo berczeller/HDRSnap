@@ -896,7 +896,7 @@ impl UiApp {
                 &[("mp4".to_string(), "MP4"), ("webm".to_string(), "WebM"), ("gif".to_string(), "GIF (animated)")],
             );
         });
-        let container = Container::from_str(&self.s.video_format);
+        let container = Container::from_setting(&self.s.video_format);
         if container != Container::Gif {
             let current = self.s.encoder_for_format().to_string();
             let auto = self.auto_choice(container);
@@ -1110,7 +1110,7 @@ impl UiApp {
 
     fn audio_rows(&mut self, ui: &mut egui::Ui) {
         section(ui, "Audio");
-        if Container::from_str(&self.s.video_format) == Container::Gif {
+        if Container::from_setting(&self.s.video_format) == Container::Gif {
             ui.label(RichText::new("GIFs have no sound. Pick MP4 or WebM to record audio.").weak());
             return;
         }

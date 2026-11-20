@@ -3,7 +3,6 @@
 //! aligned with the video's wall-clock timeline and streamed to ffmpeg
 //! through its own named pipe (`\\.\pipe\...` is an ffmpeg input like a file).
 
-use crate::log;
 use hdrsnap_core::audio::{downmix_to_stereo, Timeline};
 use hdrsnap_core::encoders::AudioInput;
 use std::sync::atomic::{AtomicBool, Ordering};

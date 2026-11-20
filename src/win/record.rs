@@ -7,7 +7,6 @@ use super::capture::{capture_gdi, duplicate_output, Pixels};
 use super::cursor;
 use super::display::{self, Monitor};
 use super::gpu::{self, Converter, OutMode, Params, HIST_BINS, HIST_MAX_LOG2};
-use crate::log;
 use hdrsnap_core::encoders::{self, AudioInput, AudioTracks, Container, EncodeJob};
 use hdrsnap_core::settings::Settings;
 use hdrsnap_core::tonemap::{Rolloff, MIN_HDR_FRACTION};
@@ -381,7 +380,7 @@ fn run(cfg: &RecordConfig, stop: &AtomicBool) -> Result<RecordResult, String> {
     if w < 16 || h < 16 {
         return Err("region is too small to record".into());
     }
-    let container = Container::from_str(&s.video_format);
+    let container = Container::from_setting(&s.video_format);
     let fps = if container == Container::Gif { s.gif_fps } else { s.video_fps }.max(1);
     let encoder = resolve_encoder(cfg, container, w, h)?;
 
@@ -642,7 +641,7 @@ fn record_gpu(
         container,
         output: &path.to_string_lossy(),
         audio: &audio_inputs,
-        audio_tracks: AudioTracks::from_str(&s.audio_tracks),
+        audio_tracks: AudioTracks::from_setting(&s.audio_tracks),
     };
     let sink = Sink::spawn(&cfg.ffmpeg, &encoders::live_args(&job), log_path)?;
     log!(
@@ -835,7 +834,7 @@ fn record_gdi(
         container,
         output: &path.to_string_lossy(),
         audio: &audio_inputs,
-        audio_tracks: AudioTracks::from_str(&s.audio_tracks),
+        audio_tracks: AudioTracks::from_setting(&s.audio_tracks),
     };
     let sink = Sink::spawn(&cfg.ffmpeg, &encoders::live_args(&job), log_path)?;
     log!("recording {}x{} @{fps} via GDI, {} -> {}", w, h, encoder, path.display());

@@ -6,7 +6,6 @@ use super::display::{self, Monitor};
 use super::overlay::{self, Border};
 use super::record::{self, RecordConfig, RecordResult, Recorder};
 use super::{cursor, gpu, util};
-use crate::log;
 use hdrsnap_core::encoders::Container;
 use hdrsnap_core::hotkey;
 use hdrsnap_core::imageio::{self, RgbImage};
@@ -263,8 +262,8 @@ unsafe fn create_window() -> windows::core::Result<HWND> {
             None,
         )?;
         // Let the (same user, same integrity) settings process reach us.
-        for i in 0..3 {
-            let _ = ChangeWindowMessageFilterEx(hwnd, MSG_IDS[i].load(Ordering::Relaxed), MSGFLT_ALLOW, None);
+        for id in &MSG_IDS {
+            let _ = ChangeWindowMessageFilterEx(hwnd, id.load(Ordering::Relaxed), MSGFLT_ALLOW, None);
         }
         Ok(hwnd)
     }
@@ -859,7 +858,7 @@ fn toggle_record(region: bool) {
     let mon = &monitors[mon_idx];
     let rect = record::fit_region(rect, &mon.rect);
 
-    let container = Container::from_str(&s.video_format);
+    let container = Container::from_setting(&s.video_format);
     let dir = s.video_output_dir(&exe_dir);
     if let Err(e) = std::fs::create_dir_all(&dir) {
         balloon("Recording failed", &format!("Can't create {}: {e}", dir.display()));
@@ -898,7 +897,7 @@ fn record_for(s: &Settings, exe_dir: &Path, dur: Duration) -> Result<String, Str
     }
     .unwrap_or(0);
     let mon = monitors.get(idx).ok_or("no display")?;
-    let container = Container::from_str(&s.video_format);
+    let container = Container::from_setting(&s.video_format);
     let dir = s.video_output_dir(exe_dir);
     std::fs::create_dir_all(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;
     let ext = container.ext();

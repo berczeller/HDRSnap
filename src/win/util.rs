@@ -126,7 +126,7 @@ pub fn copy_image_to_clipboard(hwnd: HWND, img: &RgbImage) -> windows::core::Res
         for y in 0..img.height {
             let src = &img.data[y * img.width * 3..(y + 1) * img.width * 3];
             let dst = &mut bits[(img.height - 1 - y) * row..(img.height - 1 - y) * row + img.width * 3];
-            for (s, d) in src.chunks_exact(3).zip(dst.chunks_exact_mut(3)) {
+            for (s, d) in src.as_chunks::<3>().0.iter().zip(dst.as_chunks_mut::<3>().0.iter_mut()) {
                 d[0] = s[2];
                 d[1] = s[1];
                 d[2] = s[0];
