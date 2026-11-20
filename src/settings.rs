@@ -227,7 +227,11 @@ impl Settings {
             return exe_dir.join(default);
         }
         let p = PathBuf::from(s);
-        if p.is_absolute() { p } else { exe_dir.join(p) }
+        if p.is_absolute() {
+            p
+        } else {
+            exe_dir.join(p)
+        }
     }
 
     pub fn output_dir(&self, exe_dir: &Path) -> PathBuf {

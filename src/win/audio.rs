@@ -42,8 +42,7 @@ impl Source {
     }
 }
 
-const PKEY_DEVICE_FRIENDLY_NAME: PROPERTYKEY =
-    PROPERTYKEY { fmtid: GUID::from_u128(0xa45c254e_df1c_4efd_8020_67d146a850e0), pid: 14 };
+const PKEY_DEVICE_FRIENDLY_NAME: PROPERTYKEY = PROPERTYKEY { fmtid: GUID::from_u128(0xa45c254e_df1c_4efd_8020_67d146a850e0), pid: 14 };
 const SUBTYPE_PCM: GUID = GUID::from_u128(0x00000001_0000_0010_8000_00aa00389b71);
 const SUBTYPE_FLOAT: GUID = GUID::from_u128(0x00000003_0000_0010_8000_00aa00389b71);
 const WAVE_FORMAT_PCM_TAG: u16 = 1;
@@ -155,12 +154,7 @@ impl AudioStream {
     /// Open the device and the pipe. Audio is discarded until `begin`.
     pub fn start(source: Source) -> Result<Self, String> {
         static COUNTER: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
-        let pipe_name = format!(
-            r"\\.\pipe\hdrsnap-{}-{}-{}",
-            std::process::id(),
-            source.tag(),
-            COUNTER.fetch_add(1, Ordering::Relaxed)
-        );
+        let pipe_name = format!(r"\\.\pipe\hdrsnap-{}-{}-{}", std::process::id(), source.tag(), COUNTER.fetch_add(1, Ordering::Relaxed));
         let stop = Arc::new(AtomicBool::new(false));
         let start_at = Arc::new(Mutex::new(None));
         let connected = Arc::new(AtomicBool::new(false));

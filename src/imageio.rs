@@ -55,8 +55,7 @@ pub fn save_jpg(img: &RgbImage, path: &Path, quality: u8) -> std::io::Result<()>
     if quality >= 70 {
         enc.set_sampling_factor(jpeg_encoder::SamplingFactor::R_4_4_4);
     }
-    enc.encode(&img.data, img.width as u16, img.height as u16, jpeg_encoder::ColorType::Rgb)
-        .map_err(std::io::Error::other)
+    enc.encode(&img.data, img.width as u16, img.height as u16, jpeg_encoder::ColorType::Rgb).map_err(std::io::Error::other)
 }
 
 /// Write an uncompressed half-float RGBA OpenEXR file.

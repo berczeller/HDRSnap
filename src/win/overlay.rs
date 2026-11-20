@@ -106,8 +106,7 @@ fn collect_windows(exclude: HWND) -> Vec<RECT> {
                 return TRUE; // desktop: falls through to monitor snapping
             }
             let mut r = RECT::default();
-            if DwmGetWindowAttribute(h, DWMWA_EXTENDED_FRAME_BOUNDS, &mut r as *mut _ as *mut _, size_of::<RECT>() as u32).is_err()
-            {
+            if DwmGetWindowAttribute(h, DWMWA_EXTENDED_FRAME_BOUNDS, &mut r as *mut _ as *mut _, size_of::<RECT>() as u32).is_err() {
                 let _ = GetWindowRect(h, &mut r);
             }
             if r.right - r.left > 8 && r.bottom - r.top > 8 {
@@ -144,12 +143,8 @@ pub fn select_region(img: &RgbImage, origin: (i32, i32), monitors: &[RECT], hint
             db[i * 4 + 2] = (r as u16 * 2 / 5) as u8;
         }
 
-        let to_client = |r: &RECT| RECT {
-            left: r.left - origin.0,
-            top: r.top - origin.1,
-            right: r.right - origin.0,
-            bottom: r.bottom - origin.1,
-        };
+        let to_client =
+            |r: &RECT| RECT { left: r.left - origin.0, top: r.top - origin.1, right: r.right - origin.0, bottom: r.bottom - origin.1 };
         let windows = collect_windows(HWND::default()).iter().map(to_client).collect();
         let mut pt = POINT::default();
         let _ = GetCursorPos(&mut pt);
@@ -159,8 +154,38 @@ pub fn select_region(img: &RgbImage, origin: (i32, i32), monitors: &[RECT], hint
             let _ = GetDpiForMonitor(mon, MDT_EFFECTIVE_DPI, &mut dx, &mut dy);
             dx as i32
         };
-        let font = CreateFontW(-(15 * dpi / 96), 0, 0, 0, 600, 0, 0, 0, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, 0, w!("Segoe UI"));
-        let small_font = CreateFontW(-(13 * dpi / 96), 0, 0, 0, 400, 0, 0, 0, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, 0, w!("Segoe UI"));
+        let font = CreateFontW(
+            -(15 * dpi / 96),
+            0,
+            0,
+            0,
+            600,
+            0,
+            0,
+            0,
+            DEFAULT_CHARSET,
+            OUT_DEFAULT_PRECIS,
+            CLIP_DEFAULT_PRECIS,
+            CLEARTYPE_QUALITY,
+            0,
+            w!("Segoe UI"),
+        );
+        let small_font = CreateFontW(
+            -(13 * dpi / 96),
+            0,
+            0,
+            0,
+            400,
+            0,
+            0,
+            0,
+            DEFAULT_CHARSET,
+            OUT_DEFAULT_PRECIS,
+            CLIP_DEFAULT_PRECIS,
+            CLEARTYPE_QUALITY,
+            0,
+            w!("Segoe UI"),
+        );
 
         let mut state = Box::new(State {
             origin,
@@ -238,12 +263,12 @@ pub fn select_region(img: &RgbImage, origin: (i32, i32), monitors: &[RECT], hint
 
 fn update_hover(s: &mut State) {
     let p = s.cursor;
-    s.hover = s
-        .windows
-        .iter()
-        .find(|r| contains(r, p))
-        .or_else(|| s.monitors.iter().find(|r| contains(r, p)))
-        .map(|r| RECT { left: r.left.max(0), top: r.top.max(0), right: r.right.min(s.w), bottom: r.bottom.min(s.h) });
+    s.hover = s.windows.iter().find(|r| contains(r, p)).or_else(|| s.monitors.iter().find(|r| contains(r, p))).map(|r| RECT {
+        left: r.left.max(0),
+        top: r.top.max(0),
+        right: r.right.min(s.w),
+        bottom: r.bottom.min(s.h),
+    });
 }
 
 fn finish(s: &mut State, r: Option<RECT>) {

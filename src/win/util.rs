@@ -13,7 +13,7 @@ use windows::Win32::System::Memory::*;
 use windows::Win32::System::Ole::CF_DIB;
 use windows::Win32::System::Registry::*;
 use windows::Win32::System::SystemInformation::GetLocalTime;
-use windows::Win32::UI::Shell::{SHGetKnownFolderPath, FOLDERID_Pictures, FOLDERID_RoamingAppData, FOLDERID_Videos, KNOWN_FOLDER_FLAG};
+use windows::Win32::UI::Shell::{FOLDERID_Pictures, FOLDERID_RoamingAppData, FOLDERID_Videos, SHGetKnownFolderPath, KNOWN_FOLDER_FLAG};
 
 // ---------------------------------------------------------------------------
 // Portable vs installed
@@ -192,9 +192,7 @@ pub fn autostart_disabled_by_windows() -> bool {
 /// Windows 11 "Use the Print screen key to open screen capture" (the
 /// Snipping Tool then takes the plain Print Screen key).
 pub fn print_screen_opens_snipping_tool() -> bool {
-    reg_read("Control Panel\\Keyboard", "PrintScreenKeyForSnippingEnabled")
-        .map(|b| b.first().copied().unwrap_or(0) != 0)
-        .unwrap_or(false)
+    reg_read("Control Panel\\Keyboard", "PrintScreenKeyForSnippingEnabled").map(|b| b.first().copied().unwrap_or(0) != 0).unwrap_or(false)
 }
 
 /// Turn "Start with Windows" on or off. `user_choice` = the user just
@@ -227,7 +225,11 @@ pub fn set_autostart(enable: bool, exe: &Path) -> Result<(), String> {
             let wide: Vec<u16> = cmd.encode_utf16().chain(std::iter::once(0)).collect();
             let bytes = std::slice::from_raw_parts(wide.as_ptr() as *const u8, wide.len() * 2);
             let r = RegSetValueExW(key, PCWSTR(name.as_ptr()), None, REG_SZ, Some(bytes));
-            if r.is_err() { Err(format!("set Run value: {r:?}")) } else { Ok(()) }
+            if r.is_err() {
+                Err(format!("set Run value: {r:?}"))
+            } else {
+                Ok(())
+            }
         } else {
             let _ = RegDeleteValueW(key, PCWSTR(name.as_ptr()));
             Ok(())

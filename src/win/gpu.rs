@@ -155,7 +155,9 @@ fn compile(entry: PCSTR, hist: bool) -> Result<Vec<u8>> {
         );
         if let Err(e) = r {
             let msg = errors
-                .map(|b: ID3DBlob| String::from_utf8_lossy(std::slice::from_raw_parts(b.GetBufferPointer() as *const u8, b.GetBufferSize())).to_string())
+                .map(|b: ID3DBlob| {
+                    String::from_utf8_lossy(std::slice::from_raw_parts(b.GetBufferPointer() as *const u8, b.GetBufferSize())).to_string()
+                })
                 .unwrap_or_default();
             crate::log!("shader compile failed: {msg}");
             return Err(windows::core::Error::from_hresult(e.code()));
@@ -251,7 +253,16 @@ pub struct Converter {
 
 impl Converter {
     /// `src_desc`: format/size of the duplicated desktop texture.
-    pub fn new(dev: &ID3D11Device, ctx: &ID3D11DeviceContext, src_fmt: DXGI_FORMAT, src_w: u32, src_h: u32, out_w: u32, out_h: u32, mode: OutMode) -> Result<Self> {
+    pub fn new(
+        dev: &ID3D11Device,
+        ctx: &ID3D11DeviceContext,
+        src_fmt: DXGI_FORMAT,
+        src_w: u32,
+        src_h: u32,
+        out_w: u32,
+        out_h: u32,
+        mode: OutMode,
+    ) -> Result<Self> {
         unsafe {
             let cs = |entry, hist| -> Result<ID3D11ComputeShader> {
                 let code = compile(entry, hist)?;
@@ -338,7 +349,13 @@ impl Converter {
         }
     }
 
-    fn make_srv_texture(dev: &ID3D11Device, w: u32, h: u32, fmt: DXGI_FORMAT, init: Option<&[u8]>) -> Result<(ID3D11Texture2D, ID3D11ShaderResourceView)> {
+    fn make_srv_texture(
+        dev: &ID3D11Device,
+        w: u32,
+        h: u32,
+        fmt: DXGI_FORMAT,
+        init: Option<&[u8]>,
+    ) -> Result<(ID3D11Texture2D, ID3D11ShaderResourceView)> {
         unsafe {
             let d = D3D11_TEXTURE2D_DESC {
                 Width: w,
@@ -539,7 +556,8 @@ pub fn selftest() -> std::result::Result<String, String> {
     };
     let mut report = String::new();
     for mode in [OutMode::Rgba, OutMode::Nv12] {
-        let mut conv = Converter::new(&dev, &ctx, DXGI_FORMAT_R16G16B16A16_FLOAT, w, h, w, h, mode).map_err(|e| format!("converter: {e}"))?;
+        let mut conv =
+            Converter::new(&dev, &ctx, DXGI_FORMAT_R16G16B16A16_FLOAT, w, h, w, h, mode).map_err(|e| format!("converter: {e}"))?;
         conv.upload_source(&bytes, w * 8);
         let mut p = params;
         p.f[1] = if mode == OutMode::Rgba { 1 } else { 0 };

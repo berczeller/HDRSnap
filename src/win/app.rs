@@ -248,7 +248,20 @@ unsafe fn create_window() -> windows::core::Result<HWND> {
         for (i, name) in [MSG_RELOAD, MSG_SUSPEND_HOTKEYS, MSG_OPEN_SETTINGS].iter().enumerate() {
             MSG_IDS[i].store(RegisterWindowMessageW(*name), Ordering::Relaxed);
         }
-        let hwnd = CreateWindowExW(WINDOW_EX_STYLE::default(), MAIN_CLASS, w!("HDRSnap"), WS_OVERLAPPED, 0, 0, 0, 0, None, None, Some(hinst.into()), None)?;
+        let hwnd = CreateWindowExW(
+            WINDOW_EX_STYLE::default(),
+            MAIN_CLASS,
+            w!("HDRSnap"),
+            WS_OVERLAPPED,
+            0,
+            0,
+            0,
+            0,
+            None,
+            None,
+            Some(hinst.into()),
+            None,
+        )?;
         // Let the (same user, same integrity) settings process reach us.
         for i in 0..3 {
             let _ = ChangeWindowMessageFilterEx(hwnd, MSG_IDS[i].load(Ordering::Relaxed), MSGFLT_ALLOW, None);
@@ -434,7 +447,8 @@ fn hk_label(s: &str) -> String {
 }
 
 fn show_menu(hwnd: HWND) {
-    let (s, recording, has_ffmpeg) = with_app(|a| (a.settings.clone(), a.recording.as_ref().map(|r| r.rec.started), record::ffmpeg_path(&a.exe_dir).is_some()));
+    let (s, recording, has_ffmpeg) =
+        with_app(|a| (a.settings.clone(), a.recording.as_ref().map(|r| r.rec.started), record::ffmpeg_path(&a.exe_dir).is_some()));
     unsafe {
         let Ok(menu) = CreatePopupMenu() else { return };
         let add = |id: usize, text: &str, enabled: bool| {
@@ -676,7 +690,12 @@ fn screenshot(region: bool) {
     if region {
         let rects: Vec<RECT> = display::enumerate().map(|m| m.iter().map(|m| m.rect).collect()).unwrap_or_default();
         with_app(|a| a.in_overlay = true);
-        let sel = overlay::select_region(&cap.image, cap.origin, &rects, "Drag to select  ·  Click a window  ·  Enter: whole monitor  ·  Esc: cancel");
+        let sel = overlay::select_region(
+            &cap.image,
+            cap.origin,
+            &rects,
+            "Drag to select  ·  Click a window  ·  Enter: whole monitor  ·  Esc: cancel",
+        );
         with_app(|a| a.in_overlay = false);
         let Some(r) = sel else { return };
         let (x, y) = ((r.left - cap.origin.0) as usize, (r.top - cap.origin.1) as usize);
@@ -690,9 +709,9 @@ fn screenshot(region: bool) {
         let out = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| save_capture(&s, &exe_dir, cap)))
             .unwrap_or_else(|_| Err("internal error while saving (see hdrsnap.log)".into()))
             .unwrap_or_else(|e| {
-            log!("save failed: {e}");
-            Outcome { path: None, error: Some(e), clipboard: None, summary: String::new() }
-        });
+                log!("save failed: {e}");
+                Outcome { path: None, error: Some(e), clipboard: None, summary: String::new() }
+            });
         busy.store(false, Ordering::SeqCst);
         post_box_to(hwnd_raw, WM_CAPTURE_DONE, out);
     });
@@ -705,7 +724,11 @@ fn save_capture(s: &Settings, exe_dir: &Path, cap: Capture) -> Result<Outcome, S
     let ext = if s.is_jpg() { "jpg" } else { "png" };
     let stem = unique_stem(&dir, &format!("{}_{}", s.filename_prefix, util::timestamp()), ext);
     let path = dir.join(format!("{stem}.{ext}"));
-    let r = if s.is_jpg() { imageio::save_jpg(&cap.image, &path, s.jpg_quality as u8) } else { imageio::save_png(&cap.image, &path, s.png_level()) };
+    let r = if s.is_jpg() {
+        imageio::save_jpg(&cap.image, &path, s.jpg_quality as u8)
+    } else {
+        imageio::save_png(&cap.image, &path, s.png_level())
+    };
     r.map_err(|e| format!("save {}: {e}", path.display()))?;
 
     let mut hdr_notes = Vec::new();
@@ -808,7 +831,12 @@ fn toggle_record(region: bool) {
         };
         let rects: Vec<RECT> = monitors.iter().map(|m| m.rect).collect();
         with_app(|a| a.in_overlay = true);
-        let sel = overlay::select_region(&cap.image, cap.origin, &rects, "Select the area to record  ·  Click a window  ·  Enter: whole monitor  ·  Esc: cancel");
+        let sel = overlay::select_region(
+            &cap.image,
+            cap.origin,
+            &rects,
+            "Select the area to record  ·  Click a window  ·  Enter: whole monitor  ·  Esc: cancel",
+        );
         with_app(|a| a.in_overlay = false);
         let Some(r) = sel else { return };
         let center = POINT { x: (r.left + r.right) / 2, y: (r.top + r.bottom) / 2 };
@@ -885,9 +913,12 @@ fn record_for(s: &Settings, exe_dir: &Path, dur: Duration) -> Result<String, Str
         output,
     };
     let (tx, rx) = std::sync::mpsc::channel();
-    let rec = record::start(cfg, Box::new(move |r| {
-        let _ = tx.send(r);
-    }));
+    let rec = record::start(
+        cfg,
+        Box::new(move |r| {
+            let _ = tx.send(r);
+        }),
+    );
     std::thread::sleep(dur);
     rec.stop();
     let r = rx.recv().map_err(|_| "recorder vanished".to_string())??;

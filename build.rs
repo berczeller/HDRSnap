@@ -4,8 +4,6 @@ fn main() {
         println!("cargo:rerun-if-changed=assets/app.rc");
         println!("cargo:rerun-if-changed=assets/app.ico");
         println!("cargo:rerun-if-changed=assets/app.manifest");
-        embed_resource::compile_for("assets/app.rc", ["HDRSnap"], embed_resource::NONE)
-            .manifest_optional()
-            .unwrap();
+        embed_resource::compile_for("assets/app.rc", ["HDRSnap"], embed_resource::NONE).manifest_optional().unwrap();
     }
 }

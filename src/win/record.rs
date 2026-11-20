@@ -2,12 +2,12 @@
 //! (raw frames on stdin). GDI capture is the fallback when duplication is
 //! unavailable (SDR only).
 
+use super::audio::{AudioStream, Source};
 use super::capture::{capture_gdi, duplicate_output, Pixels};
 use super::cursor;
 use super::display::{self, Monitor};
 use super::gpu::{self, Converter, OutMode, Params, HIST_BINS, HIST_MAX_LOG2};
 use crate::log;
-use super::audio::{AudioStream, Source};
 use hdrsnap_core::encoders::{self, AudioInput, AudioTracks, Container, EncodeJob};
 use hdrsnap_core::settings::Settings;
 use hdrsnap_core::tonemap::{Rolloff, MIN_HDR_FRACTION};
@@ -184,7 +184,8 @@ pub fn start(cfg: RecordConfig, on_done: Box<dyn FnOnce(Result<RecordResult, Str
 /// Clamp a desktop rectangle to the monitor and make it even-sized
 /// (4:2:0 video needs even dimensions).
 pub fn fit_region(r: RECT, mon: &RECT) -> RECT {
-    let mut r = RECT { left: r.left.max(mon.left), top: r.top.max(mon.top), right: r.right.min(mon.right), bottom: r.bottom.min(mon.bottom) };
+    let mut r =
+        RECT { left: r.left.max(mon.left), top: r.top.max(mon.top), right: r.right.min(mon.right), bottom: r.bottom.min(mon.bottom) };
     if (r.right - r.left) % 2 == 1 {
         r.right -= 1;
     }
@@ -414,7 +415,11 @@ fn run(cfg: &RecordConfig, stop: &AtomicBool) -> Result<RecordResult, String> {
                     monitors = find_monitor(&cfg.device_name)?;
                 }
                 Err(e) if e.starts_with("SETUP:") => {
-                    log!("warning: GPU recording unavailable ({}), using GDI{}", &e[6..], if mon.hdr { " (HDR will look clipped)" } else { "" });
+                    log!(
+                        "warning: GPU recording unavailable ({}), using GDI{}",
+                        &e[6..],
+                        if mon.hdr { " (HDR will look clipped)" } else { "" }
+                    );
                     break record_gdi(cfg, region, fps, &encoder, container, &encode_path, &log_path, stop, &mut audio);
                 }
                 r => break r,

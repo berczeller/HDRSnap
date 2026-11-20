@@ -314,7 +314,11 @@ impl UiApp {
             .map(|ms| {
                 ms.iter()
                     .map(|m| MonitorRow {
-                        name: if m.friendly_name.is_empty() { m.device_name.clone() } else { format!("{} ({})", m.friendly_name, m.device_name) },
+                        name: if m.friendly_name.is_empty() {
+                            m.device_name.clone()
+                        } else {
+                            format!("{} ({})", m.friendly_name, m.device_name)
+                        },
                         w: m.width(),
                         h: m.height(),
                         hdr: m.hdr,
@@ -552,11 +556,90 @@ fn key_name(k: egui::Key) -> Option<String> {
 }
 
 const KEY_CHOICES: &[&str] = &[
-    "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", "F13", "F14", "F15", "F16", "F17", "F18", "F19",
-    "F20", "F21", "F22", "F23", "F24", "PrintScreen", "Pause", "ScrollLock", "Insert", "Delete", "Home", "End", "PageUp",
-    "PageDown", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W",
-    "X", "Y", "Z", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "Num0", "Num1", "Num2", "Num3", "Num4", "Num5", "Num6",
-    "Num7", "Num8", "Num9", "Space", "Up", "Down", "Left", "Right",
+    "F1",
+    "F2",
+    "F3",
+    "F4",
+    "F5",
+    "F6",
+    "F7",
+    "F8",
+    "F9",
+    "F10",
+    "F11",
+    "F12",
+    "F13",
+    "F14",
+    "F15",
+    "F16",
+    "F17",
+    "F18",
+    "F19",
+    "F20",
+    "F21",
+    "F22",
+    "F23",
+    "F24",
+    "PrintScreen",
+    "Pause",
+    "ScrollLock",
+    "Insert",
+    "Delete",
+    "Home",
+    "End",
+    "PageUp",
+    "PageDown",
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "H",
+    "I",
+    "J",
+    "K",
+    "L",
+    "M",
+    "N",
+    "O",
+    "P",
+    "Q",
+    "R",
+    "S",
+    "T",
+    "U",
+    "V",
+    "W",
+    "X",
+    "Y",
+    "Z",
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "Num0",
+    "Num1",
+    "Num2",
+    "Num3",
+    "Num4",
+    "Num5",
+    "Num6",
+    "Num7",
+    "Num8",
+    "Num9",
+    "Space",
+    "Up",
+    "Down",
+    "Left",
+    "Right",
 ];
 
 impl UiApp {
@@ -661,7 +744,14 @@ impl UiApp {
         let text = field.get(&mut self.s).clone();
         let parsed = hotkey::parse(&text);
         let (mut ctrl, mut alt, mut shift, mut win) = parsed
-            .map(|h| (h.mods & hotkey::MOD_CONTROL != 0, h.mods & hotkey::MOD_ALT != 0, h.mods & hotkey::MOD_SHIFT != 0, h.mods & hotkey::MOD_WIN != 0))
+            .map(|h| {
+                (
+                    h.mods & hotkey::MOD_CONTROL != 0,
+                    h.mods & hotkey::MOD_ALT != 0,
+                    h.mods & hotkey::MOD_SHIFT != 0,
+                    h.mods & hotkey::MOD_WIN != 0,
+                )
+            })
             .unwrap_or_default();
         let mut key = parsed.map(|h| hotkey::format(hotkey::Hotkey { mods: 0, vk: h.vk })).unwrap_or_default();
         let before = (ctrl, alt, shift, win, key.clone());
@@ -691,7 +781,11 @@ impl UiApp {
             // warnings
             let current = field.get(&mut self.s).clone();
             if !current.is_empty() {
-                let dup = HkField::ALL.iter().any(|f| *f != field && hotkey::parse(f.get(&mut self.s)).is_some() && hotkey::parse(f.get(&mut self.s)) == hotkey::parse(&current));
+                let dup = HkField::ALL.iter().any(|f| {
+                    *f != field
+                        && hotkey::parse(f.get(&mut self.s)).is_some()
+                        && hotkey::parse(f.get(&mut self.s)) == hotkey::parse(&current)
+                });
                 if dup {
                     ui.label(RichText::new("Same as another HDRSnap hotkey").small().color(Color32::from_rgb(230, 90, 80)));
                 } else if hotkey::parse(&current).map(|h| h.mods == 0).unwrap_or(false) {
@@ -716,7 +810,8 @@ impl UiApp {
             if win {
                 parts.push("Win");
             }
-            *field.get(&mut self.s) = if key.is_empty() { String::new() } else { parts.into_iter().map(String::from).chain([key]).collect::<Vec<_>>().join("+") };
+            *field.get(&mut self.s) =
+                if key.is_empty() { String::new() } else { parts.into_iter().map(String::from).chain([key]).collect::<Vec<_>>().join("+") };
         }
     }
 
@@ -753,7 +848,12 @@ impl UiApp {
 
     fn image_format_rows(&mut self, ui: &mut egui::Ui) {
         row(ui, "Image format", "", |ui| {
-            combo(ui, "imgfmt", &mut self.s.image_format, &[("png".to_string(), "PNG (lossless)"), ("jpg".to_string(), "JPG (smaller files)")]);
+            combo(
+                ui,
+                "imgfmt",
+                &mut self.s.image_format,
+                &[("png".to_string(), "PNG (lossless)"), ("jpg".to_string(), "JPG (smaller files)")],
+            );
         });
         if self.s.is_jpg() {
             row(ui, "Quality", "Higher = sharper image, larger files. 90+ keeps text crisp.", |ui| {
@@ -783,7 +883,10 @@ impl UiApp {
 
     fn video_rows(&mut self, ui: &mut egui::Ui) {
         if self.ffmpeg.is_none() {
-            ui.label(RichText::new("ffmpeg.exe was not found next to HDRSnap.exe, so recording is disabled. It ships in the release zip.").color(Color32::from_rgb(230, 90, 80)));
+            ui.label(
+                RichText::new("ffmpeg.exe was not found next to HDRSnap.exe, so recording is disabled. It ships in the release zip.")
+                    .color(Color32::from_rgb(230, 90, 80)),
+            );
         }
         row(ui, "Video format", "", |ui| {
             combo(
@@ -819,9 +922,14 @@ impl UiApp {
                     ui.horizontal(|ui| {
                         ui.add_space(LABEL_W + 10.0);
                         ui.label(
-                            RichText::new(format!("{} is limited to {} px wide; full screen on your {} px display needs HEVC or AV1.", info.label, info.max_width, self.max_width()))
-                                .small()
-                                .color(Color32::from_rgb(230, 150, 60)),
+                            RichText::new(format!(
+                                "{} is limited to {} px wide; full screen on your {} px display needs HEVC or AV1.",
+                                info.label,
+                                info.max_width,
+                                self.max_width()
+                            ))
+                            .small()
+                            .color(Color32::from_rgb(230, 150, 60)),
                         );
                     });
                 }
@@ -858,48 +966,55 @@ impl UiApp {
     // -----------------------------------------------------------------------
 
     fn settings_ui(&mut self, ctx: &egui::Context) {
-        egui::SidePanel::left("nav").resizable(false).exact_width(190.0).frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(egui::Margin::symmetric(12, 8))).show(ctx, |ui| {
-            ui.add_space(14.0);
-            ui.horizontal(|ui| {
-                ui.add_space(6.0);
-                ui.label(RichText::new("HDRSnap").heading().strong());
-            });
-            ui.add_space(14.0);
-            for (p, name) in [
-                (Page::General, "General"),
-                (Page::Hotkeys, "Hotkeys"),
-                (Page::Screenshots, "Screenshots"),
-                (Page::Recording, "Recording"),
-                (Page::Hdr, "HDR"),
-                (Page::About, "About"),
-            ] {
-                let sel = self.page == p;
-                let text = RichText::new(name).size(15.5);
-                let resp = ui.add_sized([164.0, 34.0], egui::Button::selectable(sel, text));
-                if resp.clicked() {
-                    self.page = p;
+        egui::SidePanel::left("nav")
+            .resizable(false)
+            .exact_width(190.0)
+            .frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(egui::Margin::symmetric(12, 8)))
+            .show(ctx, |ui| {
+                ui.add_space(14.0);
+                ui.horizontal(|ui| {
+                    ui.add_space(6.0);
+                    ui.label(RichText::new("HDRSnap").heading().strong());
+                });
+                ui.add_space(14.0);
+                for (p, name) in [
+                    (Page::General, "General"),
+                    (Page::Hotkeys, "Hotkeys"),
+                    (Page::Screenshots, "Screenshots"),
+                    (Page::Recording, "Recording"),
+                    (Page::Hdr, "HDR"),
+                    (Page::About, "About"),
+                ] {
+                    let sel = self.page == p;
+                    let text = RichText::new(name).size(15.5);
+                    let resp = ui.add_sized([164.0, 34.0], egui::Button::selectable(sel, text));
+                    if resp.clicked() {
+                        self.page = p;
+                    }
                 }
-            }
-            ui.with_layout(egui::Layout::bottom_up(egui::Align::Min), |ui| {
-                ui.add_space(10.0);
-                ui.label(RichText::new("Changes apply instantly").small().weak());
+                ui.with_layout(egui::Layout::bottom_up(egui::Align::Min), |ui| {
+                    ui.add_space(10.0);
+                    ui.label(RichText::new("Changes apply instantly").small().weak());
+                });
             });
-        });
 
-        egui::CentralPanel::default().frame(egui::Frame::central_panel(&ctx.style()).inner_margin(egui::Margin::symmetric(22, 12))).show(ctx, |ui| {
-            egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
-                ui.add_space(6.0);
-                match self.page {
-                    Page::General => self.page_general(ui),
-                    Page::Hotkeys => self.page_hotkeys(ui),
-                    Page::Screenshots => self.page_screenshots(ui),
-                    Page::Recording => self.page_recording(ui),
-                    Page::Hdr => self.page_hdr(ui),
-                    Page::About => self.page_about(ui),
-                }
-                ui.add_space(12.0);
-            });
-        });
+        egui::CentralPanel::default().frame(egui::Frame::central_panel(&ctx.style()).inner_margin(egui::Margin::symmetric(22, 12))).show(
+            ctx,
+            |ui| {
+                egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
+                    ui.add_space(6.0);
+                    match self.page {
+                        Page::General => self.page_general(ui),
+                        Page::Hotkeys => self.page_hotkeys(ui),
+                        Page::Screenshots => self.page_screenshots(ui),
+                        Page::Recording => self.page_recording(ui),
+                        Page::Hdr => self.page_hdr(ui),
+                        Page::About => self.page_about(ui),
+                    }
+                    ui.add_space(12.0);
+                });
+            },
+        );
     }
 
     fn page_general(&mut self, ui: &mut egui::Ui) {
@@ -1049,9 +1164,14 @@ impl UiApp {
             );
         });
         let rolloff = self.s.tonemap_mode != "clip";
-        row(ui, "Roll-off start", "Lower keeps more highlight detail but dims whites in HDR scenes. Desktop-only captures are never affected.", |ui| {
-            ui.add_enabled(rolloff, egui::Slider::new(&mut self.s.tonemap_knee, 0.5..=0.98).fixed_decimals(2));
-        });
+        row(
+            ui,
+            "Roll-off start",
+            "Lower keeps more highlight detail but dims whites in HDR scenes. Desktop-only captures are never affected.",
+            |ui| {
+                ui.add_enabled(rolloff, egui::Slider::new(&mut self.s.tonemap_knee, 0.5..=0.98).fixed_decimals(2));
+            },
+        );
         row(ui, "Highlight whitening", "How much the brightest highlights fade towards white.", |ui| {
             ui.add_enabled(rolloff, egui::Slider::new(&mut self.s.highlight_desaturation, 0.0..=1.0).fixed_decimals(2));
         });
@@ -1118,69 +1238,74 @@ impl UiApp {
         let step = self.wizard.unwrap_or(0);
         const STEPS: [&str; 4] = ["Hotkeys", "Folders & startup", "Screenshots", "Recording"];
 
-        egui::TopBottomPanel::top("wiz_top").frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(egui::Margin::symmetric(22, 6))).show(ctx, |ui| {
-            ui.add_space(12.0);
-            ui.label(RichText::new("Welcome to HDRSnap").heading().strong());
-            ui.add_space(4.0);
-            ui.horizontal(|ui| {
-                for (i, name) in STEPS.iter().enumerate() {
-                    let (col, txt) = if i == step {
-                        (ACCENT, RichText::new(format!("{}  {}", i + 1, name)).strong().color(ACCENT))
-                    } else if i < step {
-                        (ui.visuals().text_color(), RichText::new(format!("{}  {}", i + 1, name)))
-                    } else {
-                        (ui.visuals().weak_text_color(), RichText::new(format!("{}  {}", i + 1, name)).weak())
-                    };
-                    let _ = col;
-                    ui.label(txt);
-                    if i + 1 < STEPS.len() {
-                        ui.label(RichText::new("›").weak());
-                    }
-                }
-            });
-            ui.add_space(8.0);
-        });
-
-        egui::TopBottomPanel::bottom("wiz_bottom").frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(egui::Margin::symmetric(22, 4))).show(ctx, |ui| {
-            ui.add_space(10.0);
-            ui.horizontal(|ui| {
-                if !self.wizard_from_settings && ui.button("Skip setup (keep current settings)").clicked() {
-                    let mut d = self.saved.clone();
-                    d.setup_completed = true;
-                    self.s = d;
-                    self.save_now();
-                    self.finished = true;
-                    ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-                }
-                if self.wizard_from_settings && ui.button("Cancel").clicked() {
-                    self.s = self.saved.clone();
-                    self.leave_wizard(ctx);
-                }
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    let last = step + 1 == STEPS.len();
-                    let next = egui::Button::new(RichText::new(if last { "Finish" } else { "Next" }).strong().color(Color32::BLACK)).fill(ACCENT);
-                    if ui.add(next).clicked() {
-                        if last {
-                            self.set_listening(None);
-                            self.s.setup_completed = true;
-                            self.save_now();
-                            self.finished = true;
-                            if self.wizard_from_settings {
-                                self.leave_wizard(ctx);
-                            } else {
-                                ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-                            }
+        egui::TopBottomPanel::top("wiz_top")
+            .frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(egui::Margin::symmetric(22, 6)))
+            .show(ctx, |ui| {
+                ui.add_space(12.0);
+                ui.label(RichText::new("Welcome to HDRSnap").heading().strong());
+                ui.add_space(4.0);
+                ui.horizontal(|ui| {
+                    for (i, name) in STEPS.iter().enumerate() {
+                        let (col, txt) = if i == step {
+                            (ACCENT, RichText::new(format!("{}  {}", i + 1, name)).strong().color(ACCENT))
+                        } else if i < step {
+                            (ui.visuals().text_color(), RichText::new(format!("{}  {}", i + 1, name)))
                         } else {
-                            self.wizard = Some(step + 1);
+                            (ui.visuals().weak_text_color(), RichText::new(format!("{}  {}", i + 1, name)).weak())
+                        };
+                        let _ = col;
+                        ui.label(txt);
+                        if i + 1 < STEPS.len() {
+                            ui.label(RichText::new("›").weak());
                         }
                     }
-                    if step > 0 && ui.button("Back").clicked() {
-                        self.wizard = Some(step - 1);
-                    }
                 });
+                ui.add_space(8.0);
             });
-            ui.add_space(10.0);
-        });
+
+        egui::TopBottomPanel::bottom("wiz_bottom")
+            .frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(egui::Margin::symmetric(22, 4)))
+            .show(ctx, |ui| {
+                ui.add_space(10.0);
+                ui.horizontal(|ui| {
+                    if !self.wizard_from_settings && ui.button("Skip setup (keep current settings)").clicked() {
+                        let mut d = self.saved.clone();
+                        d.setup_completed = true;
+                        self.s = d;
+                        self.save_now();
+                        self.finished = true;
+                        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                    }
+                    if self.wizard_from_settings && ui.button("Cancel").clicked() {
+                        self.s = self.saved.clone();
+                        self.leave_wizard(ctx);
+                    }
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        let last = step + 1 == STEPS.len();
+                        let next = egui::Button::new(RichText::new(if last { "Finish" } else { "Next" }).strong().color(Color32::BLACK))
+                            .fill(ACCENT);
+                        if ui.add(next).clicked() {
+                            if last {
+                                self.set_listening(None);
+                                self.s.setup_completed = true;
+                                self.save_now();
+                                self.finished = true;
+                                if self.wizard_from_settings {
+                                    self.leave_wizard(ctx);
+                                } else {
+                                    ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                                }
+                            } else {
+                                self.wizard = Some(step + 1);
+                            }
+                        }
+                        if step > 0 && ui.button("Back").clicked() {
+                            self.wizard = Some(step - 1);
+                        }
+                    });
+                });
+                ui.add_space(10.0);
+            });
 
         egui::CentralPanel::default().frame(egui::Frame::central_panel(&ctx.style()).inner_margin(egui::Margin::symmetric(22, 12))).show(ctx, |ui| {
             egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {

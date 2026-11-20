@@ -45,13 +45,7 @@ pub struct HdrParams {
 
 impl Default for HdrParams {
     fn default() -> Self {
-        Self {
-            sdr_white_scale: 1.0,
-            display_peak_nits: 0.0,
-            mode: ToneMapMode::Auto,
-            knee: 0.75,
-            highlight_desaturation: 0.5,
-        }
+        Self { sdr_white_scale: 1.0, display_peak_nits: 0.0, mode: ToneMapMode::Auto, knee: 0.75, highlight_desaturation: 0.5 }
     }
 }
 
@@ -317,10 +311,7 @@ pub fn tonemap_scrgb(
                         for y in y0..y1 {
                             let row = &src[y * src_pitch..y * src_pitch + width * 4];
                             for px in row.chunks_exact(4) {
-                                let m = f16[px[0] as usize]
-                                    .max(f16[px[1] as usize])
-                                    .max(f16[px[2] as usize])
-                                    * inv_scale;
+                                let m = f16[px[0] as usize].max(f16[px[1] as usize]).max(f16[px[2] as usize]) * inv_scale;
                                 if m > HDR_THRESHOLD && m.is_finite() {
                                     c += 1;
                                     let bin = (m.log2() / HIST_MAX_LOG2 * HIST_BINS as f32) as usize;
@@ -567,12 +558,19 @@ mod visual {
                 let (r, g, b) = if x < 300 {
                     // SDR "UI": white bar, grey ramp, saturated swatches
                     let t = x as f32 / 300.0;
-                    if y < 100 { (1.0, 1.0, 1.0) } else if y < 200 { let v = srgb_eotf(t); (v, v, v) }
-                    else { (srgb_eotf(t), srgb_eotf(0.3), srgb_eotf(1.0 - t)) }
+                    if y < 100 {
+                        (1.0, 1.0, 1.0)
+                    } else if y < 200 {
+                        let v = srgb_eotf(t);
+                        (v, v, v)
+                    } else {
+                        (srgb_eotf(t), srgb_eotf(0.3), srgb_eotf(1.0 - t))
+                    }
                 } else {
                     // HDR sky: gradient up to 6x SDR white with a bright sun disk
                     let t = (x - 300) as f32 / 600.0;
-                    let dx = x as f32 - 750.0; let dy = y as f32 - 150.0;
+                    let dx = x as f32 - 750.0;
+                    let dy = y as f32 - 150.0;
                     let sun = (-(dx * dx + dy * dy) / 800.0).exp() * 8.0;
                     let base = 0.2 + 3.0 * t * (1.0 - y as f32 / h as f32);
                     (base * 1.1 + sun, base * 0.9 + sun * 0.9, base * 0.6 + sun * 0.7)

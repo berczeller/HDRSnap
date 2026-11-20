@@ -54,19 +54,123 @@ pub struct EncoderInfo {
 use Container::*;
 
 pub const ENCODERS: &[EncoderInfo] = &[
-    EncoderInfo { id: "h264_nvenc", label: "NVIDIA NVENC H.264", containers: &[Mp4], kind: Kind::Nvenc, hardware: true, max_width: 4096, codec: "h264" },
-    EncoderInfo { id: "hevc_nvenc", label: "NVIDIA NVENC HEVC (H.265)", containers: &[Mp4], kind: Kind::Nvenc, hardware: true, max_width: 8192, codec: "hevc" },
-    EncoderInfo { id: "av1_nvenc", label: "NVIDIA NVENC AV1", containers: &[Mp4, Webm], kind: Kind::Nvenc, hardware: true, max_width: 8192, codec: "av1" },
-    EncoderInfo { id: "h264_amf", label: "AMD AMF H.264", containers: &[Mp4], kind: Kind::Amf, hardware: true, max_width: 4096, codec: "h264" },
-    EncoderInfo { id: "hevc_amf", label: "AMD AMF HEVC (H.265)", containers: &[Mp4], kind: Kind::Amf, hardware: true, max_width: 8192, codec: "hevc" },
-    EncoderInfo { id: "av1_amf", label: "AMD AMF AV1", containers: &[Mp4, Webm], kind: Kind::Amf, hardware: true, max_width: 8192, codec: "av1" },
-    EncoderInfo { id: "h264_qsv", label: "Intel Quick Sync H.264", containers: &[Mp4], kind: Kind::Qsv, hardware: true, max_width: 4096, codec: "h264" },
-    EncoderInfo { id: "hevc_qsv", label: "Intel Quick Sync HEVC (H.265)", containers: &[Mp4], kind: Kind::Qsv, hardware: true, max_width: 8192, codec: "hevc" },
-    EncoderInfo { id: "av1_qsv", label: "Intel Quick Sync AV1", containers: &[Mp4, Webm], kind: Kind::Qsv, hardware: true, max_width: 8192, codec: "av1" },
-    EncoderInfo { id: "libx264", label: "x264 H.264 (CPU)", containers: &[Mp4], kind: Kind::X264, hardware: false, max_width: 16384, codec: "h264" },
-    EncoderInfo { id: "libx265", label: "x265 HEVC (CPU, slow)", containers: &[Mp4], kind: Kind::X265, hardware: false, max_width: 16384, codec: "hevc" },
-    EncoderInfo { id: "libvpx-vp9", label: "VP9 (CPU)", containers: &[Webm], kind: Kind::Vp9, hardware: false, max_width: 16384, codec: "vp9" },
-    EncoderInfo { id: "libaom-av1", label: "AV1 libaom (CPU, very slow)", containers: &[Webm], kind: Kind::Aom, hardware: false, max_width: 16384, codec: "av1" },
+    EncoderInfo {
+        id: "h264_nvenc",
+        label: "NVIDIA NVENC H.264",
+        containers: &[Mp4],
+        kind: Kind::Nvenc,
+        hardware: true,
+        max_width: 4096,
+        codec: "h264",
+    },
+    EncoderInfo {
+        id: "hevc_nvenc",
+        label: "NVIDIA NVENC HEVC (H.265)",
+        containers: &[Mp4],
+        kind: Kind::Nvenc,
+        hardware: true,
+        max_width: 8192,
+        codec: "hevc",
+    },
+    EncoderInfo {
+        id: "av1_nvenc",
+        label: "NVIDIA NVENC AV1",
+        containers: &[Mp4, Webm],
+        kind: Kind::Nvenc,
+        hardware: true,
+        max_width: 8192,
+        codec: "av1",
+    },
+    EncoderInfo {
+        id: "h264_amf",
+        label: "AMD AMF H.264",
+        containers: &[Mp4],
+        kind: Kind::Amf,
+        hardware: true,
+        max_width: 4096,
+        codec: "h264",
+    },
+    EncoderInfo {
+        id: "hevc_amf",
+        label: "AMD AMF HEVC (H.265)",
+        containers: &[Mp4],
+        kind: Kind::Amf,
+        hardware: true,
+        max_width: 8192,
+        codec: "hevc",
+    },
+    EncoderInfo {
+        id: "av1_amf",
+        label: "AMD AMF AV1",
+        containers: &[Mp4, Webm],
+        kind: Kind::Amf,
+        hardware: true,
+        max_width: 8192,
+        codec: "av1",
+    },
+    EncoderInfo {
+        id: "h264_qsv",
+        label: "Intel Quick Sync H.264",
+        containers: &[Mp4],
+        kind: Kind::Qsv,
+        hardware: true,
+        max_width: 4096,
+        codec: "h264",
+    },
+    EncoderInfo {
+        id: "hevc_qsv",
+        label: "Intel Quick Sync HEVC (H.265)",
+        containers: &[Mp4],
+        kind: Kind::Qsv,
+        hardware: true,
+        max_width: 8192,
+        codec: "hevc",
+    },
+    EncoderInfo {
+        id: "av1_qsv",
+        label: "Intel Quick Sync AV1",
+        containers: &[Mp4, Webm],
+        kind: Kind::Qsv,
+        hardware: true,
+        max_width: 8192,
+        codec: "av1",
+    },
+    EncoderInfo {
+        id: "libx264",
+        label: "x264 H.264 (CPU)",
+        containers: &[Mp4],
+        kind: Kind::X264,
+        hardware: false,
+        max_width: 16384,
+        codec: "h264",
+    },
+    EncoderInfo {
+        id: "libx265",
+        label: "x265 HEVC (CPU, slow)",
+        containers: &[Mp4],
+        kind: Kind::X265,
+        hardware: false,
+        max_width: 16384,
+        codec: "hevc",
+    },
+    EncoderInfo {
+        id: "libvpx-vp9",
+        label: "VP9 (CPU)",
+        containers: &[Webm],
+        kind: Kind::Vp9,
+        hardware: false,
+        max_width: 16384,
+        codec: "vp9",
+    },
+    EncoderInfo {
+        id: "libaom-av1",
+        label: "AV1 libaom (CPU, very slow)",
+        containers: &[Webm],
+        kind: Kind::Aom,
+        hardware: false,
+        max_width: 16384,
+        codec: "av1",
+    },
 ];
 
 pub fn info(id: &str) -> Option<&'static EncoderInfo> {
@@ -120,7 +224,11 @@ pub enum AudioTracks {
 
 impl AudioTracks {
     pub fn from_str(s: &str) -> Self {
-        if s == "separate" { AudioTracks::Separate } else { AudioTracks::Mixed }
+        if s == "separate" {
+            AudioTracks::Separate
+        } else {
+            AudioTracks::Mixed
+        }
     }
 }
 
@@ -148,10 +256,8 @@ pub struct EncodeJob<'a> {
 
 /// Arguments for the live encode (frames on stdin).
 pub fn live_args(job: &EncodeJob) -> Vec<String> {
-    let mut a: Vec<String> = ["-hide_banner", "-loglevel", "warning", "-y", "-f", "rawvideo", "-pix_fmt"]
-        .iter()
-        .map(|s| s.to_string())
-        .collect();
+    let mut a: Vec<String> =
+        ["-hide_banner", "-loglevel", "warning", "-y", "-f", "rawvideo", "-pix_fmt"].iter().map(|s| s.to_string()).collect();
     a.push(job.ffmpeg_input_pix_fmt.into());
     a.extend(["-s".into(), format!("{}x{}", job.width, job.height)]);
     a.extend(["-framerate".into(), job.fps.to_string()]);
@@ -161,9 +267,24 @@ pub fn live_args(job: &EncodeJob) -> Vec<String> {
         a.extend(
             // raw PCM needs no probing; without these ffmpeg 7.x waits ~5 s of
             // real-time audio before it starts reading the video
-            ["-probesize", "32", "-analyzeduration", "0", "-f", "f32le", "-ar", &inp.sample_rate.to_string(), "-ch_layout", "stereo", "-thread_queue_size", "4096", "-i", &inp.path]
-                .iter()
-                .map(|s| s.to_string()),
+            [
+                "-probesize",
+                "32",
+                "-analyzeduration",
+                "0",
+                "-f",
+                "f32le",
+                "-ar",
+                &inp.sample_rate.to_string(),
+                "-ch_layout",
+                "stereo",
+                "-thread_queue_size",
+                "4096",
+                "-i",
+                &inp.path,
+            ]
+            .iter()
+            .map(|s| s.to_string()),
         );
     }
 
@@ -188,8 +309,12 @@ pub fn live_args(job: &EncodeJob) -> Vec<String> {
         Kind::Nvenc => a.extend(s(&["-preset", "p4", "-tune", "hq", "-rc", "vbr", "-cq", &qv, "-b:v", "0"])),
         Kind::Amf => a.extend(s(&["-quality", "balanced", "-rc", "cqp", "-qp_i", &qv, "-qp_p", &qv])),
         Kind::Qsv => a.extend(s(&["-preset", "faster", "-global_quality", &qv])),
-        Kind::Vp9 => a.extend(s(&["-deadline", "realtime", "-cpu-used", "8", "-row-mt", "1", "-crf", &qv, "-b:v", "0", "-pix_fmt", "yuv420p"])),
-        Kind::Aom => a.extend(s(&["-usage", "realtime", "-cpu-used", "8", "-row-mt", "1", "-crf", &qv, "-b:v", "0", "-pix_fmt", "yuv420p"])),
+        Kind::Vp9 => {
+            a.extend(s(&["-deadline", "realtime", "-cpu-used", "8", "-row-mt", "1", "-crf", &qv, "-b:v", "0", "-pix_fmt", "yuv420p"]))
+        }
+        Kind::Aom => {
+            a.extend(s(&["-usage", "realtime", "-cpu-used", "8", "-row-mt", "1", "-crf", &qv, "-b:v", "0", "-pix_fmt", "yuv420p"]))
+        }
     }
     if e.codec == "hevc" && job.container == Mp4 {
         a.extend(s(&["-tag:v", "hvc1"])); // plays in Windows/Apple players
@@ -262,8 +387,22 @@ pub fn gif_args(input: &str, output: &str, fps: u32, max_width: u32, quality: u3
 pub fn probe_args(encoder: &str) -> Vec<String> {
     let fmt = if encoder.contains("qsv") || encoder.contains("nvenc") || encoder.contains("amf") { "nv12" } else { "yuv420p" };
     [
-        "-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "color=black:s=320x240:r=30", "-frames:v", "1", "-pix_fmt", fmt,
-        "-c:v", encoder, "-f", "null", "-",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-f",
+        "lavfi",
+        "-i",
+        "color=black:s=320x240:r=30",
+        "-frames:v",
+        "1",
+        "-pix_fmt",
+        fmt,
+        "-c:v",
+        encoder,
+        "-f",
+        "null",
+        "-",
     ]
     .iter()
     .map(|s| s.to_string())

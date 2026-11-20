@@ -245,11 +245,7 @@ pub fn capture_gdi(rect: &RECT) -> Result<Frame> {
             let bmp = CreateDIBSection(Some(mem), &bmi, DIB_RGB_COLORS, &mut bits, None, 0)?;
             let old = SelectObject(mem, bmp.into());
             let r = BitBlt(mem, 0, 0, w, h, Some(screen), rect.left, rect.top, SRCCOPY | CAPTUREBLT);
-            let data = if r.is_ok() {
-                Some(std::slice::from_raw_parts(bits as *const u8, (w * h * 4) as usize).to_vec())
-            } else {
-                None
-            };
+            let data = if r.is_ok() { Some(std::slice::from_raw_parts(bits as *const u8, (w * h * 4) as usize).to_vec()) } else { None };
             SelectObject(mem, old);
             let _ = DeleteObject(bmp.into());
             r?;
