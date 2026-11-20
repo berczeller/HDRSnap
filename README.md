@@ -1,32 +1,52 @@
-# HDRSnap 0.3.1
+<p align="center"><img src="assets/icon64.png" width="64" alt="HDRSnap"></p>
 
-Lightweight screenshot and screen recording tool for Windows 10/11 that handles **HDR** correctly: captures from HDR monitors look the same as what you see, not washed out or blown out.
+# HDRSnap
 
-## Download
+### HDR-aware screenshots and screen recordings for Windows 10 and 11.
 
-Each release comes in two flavours, both with `ffmpeg.exe` included:
+![OS](https://img.shields.io/badge/Windows-10%20%7C%2011-1a9fff?style=flat-square) ![GPU](https://img.shields.io/badge/GPU-DirectX%2011-86dc8f?style=flat-square) ![Language](https://img.shields.io/badge/Rust-stable-c4a7ff?style=flat-square) ![Version](https://img.shields.io/github/v/release/berczeller/HDRSnap?style=flat-square&label=version&color=ffc36b) ![License](https://img.shields.io/badge/license-MIT-6fd6a0?style=flat-square)
 
-- **`HDRSnap-<version>-setup.exe`**: Windows installer. Installs for your user (no admin prompt; you can choose all users), adds Start menu entries and an uninstaller. Settings and logs go to `%APPDATA%\HDRSnap`, screenshots to `Pictures\HDRSnap`, recordings to `Videos\HDRSnap`.
-- **`HDRSnap-<version>-portable.zip`**: unzip anywhere (a USB stick works). Everything, including settings and captures, stays in that folder.
+---
 
-## Getting started
+Most capture tools grab an HDR desktop as if it were SDR, so screenshots and videos come out washed out or blown out. HDRSnap captures each monitor in its native format and tone maps HDR to SDR, so what you save looks like what you see. It sits in the tray, works with hotkeys and records video with sound through FFmpeg.
 
-1. Run the installer, or unzip the portable version anywhere and run `HDRSnap.exe`. It lives in the system tray (orange viewfinder icon).
-2. The first time, a short setup wizard asks for hotkeys, output folders and formats. You can skip it to keep the defaults, and reopen it any time from *Settings > General*.
-3. Double-click the tray icon (or right-click > *Settings…*) to change anything. Changes apply instantly.
+## Features
 
-Keep `ffmpeg.exe` next to `HDRSnap.exe`; recording needs it. Screenshots work without it.
+- Region, window and full screen screenshots to PNG or JPG, copied to the clipboard
+- MP4, WebM or GIF recording with hardware encoders (NVENC, AMF, Quick Sync) or CPU encoders
+- Correct HDR to SDR conversion on the CPU for screenshots and on the GPU for recordings, with an adaptive highlight roll-off
+- System audio and microphone recording, mixed into one track or kept as separate tracks
+- Hotkey presets (HDRSnap F12, ShareX style, Snipping Tool style) or any custom combination
+- Optional cursor capture, a red border around region recordings that never shows up in the video
+- Installer or portable zip, start with Windows from the tray menu
 
-## Default hotkeys
+## Requirements
 
-| Action | Hotkey |
+- Windows 10 or 11, x64
+- A DirectX 11 GPU (Desktop Duplication). Without one, HDRSnap falls back to GDI capture, which can't handle HDR.
+- `ffmpeg.exe` for recording. Both release packages include it.
+
+## Install
+
+Pick one from [Releases](https://github.com/berczeller/HDRSnap/releases):
+
+- **Installer:** run `HDRSnap-0.3.2-setup.exe`. It installs for your user without an admin prompt (you can choose all users), adds Start menu entries and an uninstaller. Settings and logs go to `%APPDATA%\HDRSnap`, screenshots to `Pictures\HDRSnap`, recordings to `Videos\HDRSnap`.
+- **Portable:** extract `HDRSnap-0.3.2-portable.zip` anywhere and run `HDRSnap.exe`. Settings and captures stay in that folder.
+
+`SHA256SUMS.txt` on the release page has the checksums.
+
+## Usage
+
+HDRSnap lives in the tray (orange viewfinder icon). The first launch opens a short setup wizard for hotkeys, folders and formats. Double-click the tray icon or pick **Settings...** to change anything later; changes apply right away.
+
+| Action | Default hotkey |
 |---|---|
-| Capture region | Ctrl+Alt+F12 |
-| Capture full screen | Ctrl+F12 |
-| Start / stop recording a region | Ctrl+Alt+Shift+F12 |
-| Start / stop recording full screen | Ctrl+Shift+F12 |
+| Capture region | `Ctrl+Alt+F12` |
+| Capture full screen | `Ctrl+F12` |
+| Start / stop recording a region | `Ctrl+Alt+Shift+F12` |
+| Start / stop recording full screen | `Ctrl+Shift+F12` |
 
-Presets in the setup wizard and *Settings > Hotkeys* switch all four at once:
+Presets in the wizard and **Settings > Hotkeys** switch all four at once:
 
 | Preset | Region | Full screen | Record region | Record full screen |
 |---|---|---|---|---|
@@ -34,110 +54,81 @@ Presets in the setup wizard and *Settings > Hotkeys* switch all four at once:
 | ShareX style | Ctrl+Print Screen | Print Screen | Shift+Print Screen | Ctrl+Shift+Print Screen |
 | Snipping Tool style | Print Screen | Ctrl+Print Screen | Shift+Print Screen | Ctrl+Shift+Print Screen |
 
-For the Print Screen presets, turn off *Use the Print screen key to open screen capture* in Windows' keyboard settings (HDRSnap warns and links there when it's on).
+- **Region selection:** drag to select, or hover a window and click to grab it. `Enter` takes the whole monitor under the cursor, `Esc` or right-click cancels.
+- **Recording:** the tray icon turns red. Click it or press the same hotkey to stop. Full screen recording covers one monitor (under the cursor or the primary one, set in **Settings > Recording**).
+- **Audio:** **Settings > Recording > Audio** turns on system audio and the microphone. With both on, **Separate tracks** keeps them apart in the file so an editor can balance them; most players only play the first track. MP4 uses AAC, WebM uses Opus, GIFs have no sound.
+- **Start with Windows:** **Settings > General**, the setup wizard or the tray menu. Switching HDRSnap off in Task Manager > Startup apps is reflected in the toggle.
+- **Command line:** `--capture` (one full screen shot), `--record=<seconds>` (record for that long), `--settings`, `--setup`, `--selftest-gpu`.
 
-**Start with Windows:** *Settings > General*, the setup wizard or the tray menu. If you switch HDRSnap off in Task Manager > Startup apps, the toggle follows.
+> [!NOTE]
+> For the Print Screen presets, turn off **Use the Print screen key to open screen capture** in Windows' keyboard settings, or the Snipping Tool takes the key first. HDRSnap warns and links there when it's on.
 
-While recording, the tray icon turns red. Click it (or press the same hotkey again) to stop.
+## How it works
 
-**Region selection:** drag to select, or hover a window and click to grab it. Enter takes the whole monitor under the cursor. Esc or right-click cancels.
+With HDR on, Windows composes the desktop in scRGB (linear, 1.0 = 80 nits) and places SDR content at your **SDR content brightness**. HDRSnap:
 
-## Screenshots
+1. Captures each monitor with DXGI Desktop Duplication: FP16 on HDR monitors, 8-bit on SDR monitors (saved untouched).
+2. Divides by the monitor's SDR white level, so desktop content comes out exactly as with HDR off. Unit tests check this is bit-exact at every SDR brightness setting.
+3. If the frame has real HDR content (games, HDR video), rolls highlights off smoothly up to the measured peak instead of clipping them.
+4. Brings wide-gamut colors into sRGB by desaturating toward the pixel's luminance, which keeps hue and brightness.
 
-- PNG (lossless) or JPG. Both have a **Quality** slider: for JPG it's image quality, for PNG (always lossless) higher Quality means smaller files at a slightly slower save.
-- Full screen captures all monitors or just the one under the cursor. The mouse cursor can be included.
-- Saved to the screenshots folder and copied to the clipboard. Click the notification to open the file.
+**Settings > HDR** has the roll-off controls, the list of displays with their HDR state, and a GPU self test that compares the recording shader with the screenshot code.
 
-## Recording
+Files, next to the exe (portable) or in `%APPDATA%\HDRSnap` (installed):
 
-- **MP4**, **WebM** or **GIF**, with encoder, Quality and frame rate settings.
-- Encoders come from FFmpeg: NVIDIA NVENC (H.264 / HEVC / AV1), AMD AMF, Intel Quick Sync, x264 and x265 (CPU), VP9 and libaom AV1 (CPU). *Automatic* picks the best one your PC supports. Settings greys out encoders that don't work on your system.
-- H.264 hardware encoders are limited to 4096 px wide. On wider displays such as a 5120×1440 super-ultrawide, *Automatic* uses HEVC, or AV1 for WebM.
-- Full screen recording covers one monitor: the one under the cursor or the primary one. A region that crosses monitors is trimmed to one monitor.
-- The cursor is drawn into the video (optional). A red frame shows around region recordings; it is excluded from capture so it never appears in the video.
-- HDR monitors get the same tone mapping as screenshots, done on the GPU. The highlight roll-off adapts smoothly over time, so desktop content isn't dimmed and HDR highlights aren't clipped.
-- GIFs are recorded losslessly first, then converted with an optimised palette when you stop. Long GIFs can take a few seconds to finish.
+```
+settings.json   all settings, safe to edit by hand
+hdrsnap.log     what happened, with per-capture HDR statistics
+ffmpeg.log      output of the last recording's FFmpeg run
+```
 
-### Audio
+Outside that folder, HDRSnap only writes the optional start-with-Windows entry under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`.
 
-- *Settings > Recording > Audio*: record **system audio** (everything the PC plays through the default output device) and/or a **microphone** (Windows default or a specific one).
-- With both on, choose **Mixed into one track** or **Separate tracks**. Separate tracks keep system audio and microphone apart inside the same MP4 / WebM (named "System audio" and "Microphone") so a video editor can balance them; most players only play the first track.
-- MP4 uses AAC, WebM uses Opus. GIFs have no sound.
-- Audio stays in sync with the picture: silence while nothing plays is filled in, and small clock drift between the sound card and the PC is corrected.
+## Troubleshooting
 
-## How the HDR handling works
-
-With HDR on, Windows composes the desktop in **scRGB** (linear, 1.0 = 80 nits) and places SDR content at your *SDR content brightness*. HDRSnap:
-
-1. Captures each monitor with DXGI Desktop Duplication in its native format: FP16 on HDR monitors, 8-bit on SDR monitors. SDR monitors are saved untouched.
-2. Divides by that monitor's SDR white level, so normal desktop content comes out exactly as it would with HDR off. This is unit-tested to be bit-exact at every SDR brightness setting.
-3. If the frame has real HDR content (games, HDR video), compresses highlights with a smooth roll-off up to the measured peak instead of clipping. Desktop-only captures skip this.
-4. Brings wide-gamut colours into sRGB by desaturating toward the pixel's luminance, which keeps hue and brightness.
-
-Settings > HDR has the roll-off controls, a list of your displays with their HDR state and brightness, and a GPU self test that checks the recording shader against the screenshot code.
-
-## Files
-
-Portable: all next to the exe. Installed: in `%APPDATA%\HDRSnap` (open it from *Settings > About > Open settings folder*); default capture folders are `Pictures\HDRSnap` and `Videos\HDRSnap`. The installed copy is recognised by the `HDRSnap.installed` file next to the exe.
-
-
-- `settings.json`: all settings. Edited by the settings window, but you can also edit it by hand.
-- `hdrsnap.log`: what happened, including per-capture HDR statistics.
-- `ffmpeg.log`: output of the last recording's FFmpeg run.
-- `Screenshots\`, `Recordings\`: default output folders.
-
-Outside the folder, the only thing HDRSnap writes is the optional *Start with Windows* entry under `HKCU\…\Run`.
-
-Command line: `--capture` (one full screen shot, then exit), `--record=<seconds>` (record the monitor set in Settings for that long, then exit), `--settings`, `--setup`, `--selftest-gpu`.
+| Problem | Fix |
+|---|---|
+| A hotkey does nothing | Another app already uses it; HDRSnap shows a notification. Pick another one in **Settings > Hotkeys**. |
+| Print Screen opens the Snipping Tool | Turn off **Use the Print screen key to open screen capture** in Windows' keyboard settings. |
+| Recording is greyed out in the tray menu | `ffmpeg.exe` is missing next to `HDRSnap.exe`. |
+| Colors look washed out | Check `hdrsnap.log` for `warning:` or `using GDI` lines and open an issue with them. |
 
 ## Building from source
 
-On Windows: install Rust (https://rustup.rs, MSVC toolchain plus Visual Studio Build Tools), then:
+Rust (stable, MSVC toolchain) with the Visual Studio 2022 Build Tools C++ workload. For the release packages, also Inno Setup 6.
 
 ```
 cargo build --release
+cargo test --lib
+powershell -ExecutionPolicy Bypass -File build-release.ps1
 ```
 
-Output: `target\release\HDRSnap.exe`. Put `ffmpeg.exe` next to it for recording. Run the core unit tests with `cargo test --lib`. To build both release packages (portable zip + installer) into `dist\`, install Inno Setup 6 (`winget install JRSoftware.InnoSetup`) and run `powershell -ExecutionPolicy Bypass -File build-release.ps1`. It downloads the pinned FFmpeg 7.1.1 essentials build into `vendor\ffmpeg\` (checked by SHA-256) the first time.
+`cargo build` gives `target\release\HDRSnap.exe`; put `ffmpeg.exe` next to it to record. `build-release.ps1` runs the tests and writes the installer and portable zip to `dist\`. On first run it downloads the pinned FFmpeg 7.1.1 essentials build into `vendor\ffmpeg\` and checks its SHA-256.
 
-### Layout
+```
+src/tonemap.rs, src/audio.rs     HDR to SDR conversion, audio timeline (platform independent, tested)
+src/encoders.rs, src/settings.rs encoder catalogue and FFmpeg arguments, settings.json
+src/ui.rs                        settings window and setup wizard (egui, separate process)
+src/win/app.rs                   tray app, hotkeys, screenshot and recording flows
+src/win/capture.rs, display.rs   Desktop Duplication capture, monitor and HDR detection
+src/win/record.rs, gpu.rs        recording pipeline, GPU tone mapping compute shader
+src/win/audio.rs                 WASAPI loopback and microphone capture
+installer/HDRSnap.iss            Inno Setup script
+```
 
-- `src/tonemap.rs`: HDR to SDR conversion (CPU), tests
-- `src/encoders.rs`: encoder catalogue, Quality mapping, FFmpeg arguments
-- `src/settings.rs`, `src/hotkey.rs`, `src/imageio.rs`: settings (with v1 migration), hotkeys, PNG/JPG/EXR
-- `src/ui.rs`: settings window and setup wizard (egui, runs as a separate process so the tray app stays tiny)
-- `src/win/app.rs`: tray app, hotkeys, screenshot and recording flows
-- `src/win/capture.rs`, `src/win/display.rs`: capture and monitor/HDR detection
-- `src/win/overlay.rs`: region selector and recording border
-- `src/win/record.rs`, `src/win/gpu.rs`: recording pipeline and GPU tone mapping compute shader
-- `src/win/audio.rs`, `src/audio.rs`: WASAPI loopback / microphone capture, downmix and A/V timeline (audio reaches ffmpeg through named pipes)
-- `src/win/cursor.rs`, `src/win/util.rs`: cursor rendering, log, clipboard, autostart
+## Credits
 
-## Licenses
+**Author:** Tom Berczeller
 
-HDRSnap is MIT licensed. Rust dependencies (`windows`, `eframe`/`egui`, `png`, `jpeg-encoder`, `serde`) are MIT/Apache-2.0.
+- [FFmpeg](https://ffmpeg.org), Windows build by [gyan.dev](https://www.gyan.dev/ffmpeg/builds/), bundled as `ffmpeg.exe`
+- [egui / eframe](https://github.com/emilk/egui) by Emil Ernerfeldt
+- [windows-rs](https://github.com/microsoft/windows-rs) by Microsoft
+- [png](https://github.com/image-rs/image-png) by the image-rs team, [jpeg-encoder](https://github.com/vstroebel/jpeg-encoder) by Volker Ströbel
+- [serde](https://serde.rs) by David Tolnay and contributors
+- [Inno Setup](https://jrsoftware.org/isinfo.php) by Jordan Russell and Martijn Laan, for the installer
 
-`ffmpeg.exe` is a separate program: FFmpeg 7.1.1 "essentials" build by gyan.dev, licensed under the **GPL v3**. Its source code is available at https://ffmpeg.org and build details at https://www.gyan.dev/ffmpeg/builds/. HDRSnap only runs it as an external process. See `FFMPEG-LICENSE.txt`.
+## License
 
-## Changes
+Released under the [MIT License](LICENSE), © 2026 Tom Berczeller.
 
-### 0.3.1
-
-- **Start with Windows** is now also in the tray menu (with a check mark) and in the setup wizard. Turning it on in HDRSnap also re-enables it if it was switched off in Task Manager > Startup apps; switching it off there is reflected in HDRSnap's toggle.
-- **Setup wizard keeps your current hotkeys** instead of resetting them, and offers presets (HDRSnap F12, ShareX style, Snipping Tool style) plus a dropdown of common combinations per shortcut, with *Custom…* for anything else. *Settings > Hotkeys* has the same presets.
-- Warning (with a link to Windows settings) when a Print Screen hotkey is used while Windows gives that key to the Snipping Tool.
-- *Skip setup* keeps your current settings instead of resetting everything to defaults.
-- Fix: a `settings.json` saved with a UTF-8 BOM (Notepad, PowerShell) was treated as invalid and replaced by defaults.
-
-### 0.3.0
-
-- **Fix: washed out / over-bright recordings and screenshots after switching, minimising or maximising windows.** Several paths could quietly end up capturing an HDR monitor in 8 bits (the same clipped "ShareX look" HDRSnap exists to avoid):
-  - Desktop Duplication was created with `[FP16, BGRA8]`, so DXGI was allowed to hand out 8-bit frames from an HDR desktop. HDR monitors now offer FP16 only, every frame's format is checked, and an 8-bit frame on an HDR monitor makes HDRSnap re-create the duplication instead of using it. The first frame of a recording is no longer allowed to lock the whole recording into the SDR path.
-  - When Desktop Duplication refused to start for a moment (common during full screen / window transitions), recording and screenshots fell back to GDI straight away. They now retry with fresh DXGI objects for a few seconds first and log a warning if GDI is really needed.
-  - A failed DXGI display enumeration fell back to the GDI monitor list, which has no HDR information. It is now retried.
-  - A capture format change mid-recording no longer stops the recording.
-- **New: audio recording** (system audio and microphone, mixed or as separate tracks).
-- Dropped frames (encoder too slow) are now made up with repeats, so the video never runs shorter than real time.
-- `--record=<seconds>` command line option.
-- Two release packages: Windows installer and portable zip, both with FFmpeg 7.1.1 essentials.
-- Fix: with FFmpeg 7.x, recording with audio stalled the video for ~5 s at the start (ffmpeg probed the raw audio inputs in real time).
+`ffmpeg.exe` is a separate program licensed under the GPL v3 and only run as an external process; see `FFMPEG-LICENSE.txt`. The Rust dependencies are MIT or Apache-2.0.
