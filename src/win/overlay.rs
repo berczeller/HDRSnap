@@ -239,7 +239,9 @@ pub fn select_region(img: &RgbImage, origin: (i32, i32), monitors: &[RECT], hint
         let _ = SetFocus(Some(hwnd));
 
         let mut msg = MSG::default();
-        while !(*sp).done {
+        // `done` is set by the window procedure during DispatchMessageW,
+        // through the same pointer, so read it fresh on every iteration.
+        while !std::ptr::read_volatile(std::ptr::addr_of!((*sp).done)) {
             if !GetMessageW(&mut msg, None, 0, 0).as_bool() {
                 // WM_QUIT: re-post so the main loop sees it too
                 PostQuitMessage(msg.wParam.0 as i32);
