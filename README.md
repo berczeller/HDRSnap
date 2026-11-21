@@ -2,7 +2,7 @@
 
 # HDRSnap
 
-### HDR-aware screenshots and screen recordings for Windows 10 and 11.
+### HDR-aware screenshots and screen recordings for Windows.
 
 ![OS](https://img.shields.io/badge/Windows-10%20%7C%2011-1a9fff?style=flat-square) ![GPU](https://img.shields.io/badge/GPU-DirectX%2011-86dc8f?style=flat-square) ![Language](https://img.shields.io/badge/Rust-stable-c4a7ff?style=flat-square) ![Version](https://img.shields.io/github/v/release/berczeller/HDRSnap?style=flat-square&label=version&color=ffc36b) ![License](https://img.shields.io/badge/license-MIT-6fd6a0?style=flat-square)
 
